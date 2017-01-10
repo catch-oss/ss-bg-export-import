@@ -1,0 +1,33 @@
+{
+	"name": "catch/ss-bg-export-import",
+	"description": "Allows for background import an export of Data Objects",
+    "type": "silverstripe-module",
+	"repositories": [{
+	}, {
+		"type": "package",
+		"package": {
+			"name": "mattclegg/silverstripe-codesniffer",
+			"type": "silverstripe-module",
+			"version": "0.0.1",
+			"require": {
+				"squizlabs/php_codesniffer": ">=2.3@stable"
+			},
+			"source": {
+				"type": "git",
+				"url": "https://github.com/mattclegg/silverstripe-codesniffer.git",
+				"reference": "e673dc210dd56d92a9766e7e8766f85e8b9444a6"
+			}
+		}
+	}],
+	"require": {
+        "composer/installers": "*",
+		"firebase/php-jwt": "*",
+		"php": ">=5.4",
+		"silverstripe/framework": "*"
+	},
+	"require-dev": {
+		"phpunit/PHPUnit": "~3.7@stable",
+        "squizlabs/php_codesniffer": "2.5.*@stable",
+		"mattclegg/silverstripe-codesniffer": "0.0.1"
+	}
+}

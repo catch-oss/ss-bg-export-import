@@ -1,9 +1,9 @@
 <?php
 
-class DOExport extends DataObject implements PermissionProvider {
+class DOImport extends DataObject implements PermissionProvider {
 
     private static $db = array(
-        'ExportClass'   => 'Varchar(255)',
+        'ImportClass'   => 'Varchar(255)',
         'CSVPath'       => 'Varchar(255)',
         'Depth'         => 'Int',
         'Info'          => 'Text',
@@ -16,7 +16,7 @@ class DOExport extends DataObject implements PermissionProvider {
     );
 
     private static $summary_fields = array(
-        'ExportClass',
+        'ImportClass',
         'Status',
         'MemberName',
         'Created',
@@ -38,12 +38,11 @@ class DOExport extends DataObject implements PermissionProvider {
             $fields->removeByName('Success');
             $fields->removeByName('Message');
             $fields->removeByName('MemberID');
-            $fields->removeByName('CSVPath');
             $fields->addFieldsToTab(
                 'Root.Main',
                 [
-                    new DropdownField('ExportClass', 'ExportClass', ExportImportUtils::data_classes_for_dd()),
-                    new DropdownField('Depth', 'Export Related Data to Depth', [
+                    new DropdownField('ImportClass', 'ImportClass', ExportImportUtils::data_classes_for_dd()),
+                    new DropdownField('Depth', 'Import Related Data to Depth', [
                         '0' => 'Don\'t export related data',
                         '1' => '1',
                         '2' => '2',
@@ -78,7 +77,7 @@ class DOExport extends DataObject implements PermissionProvider {
         if ($this->Depth > $depth) return null;
 
         // get the fields we are exporting
-        $fields = ExportImportutils::all_fields($this->ExportClass);
+        $fields = ExportImportUtils::all_fields($this->ImportClass);
 
         // init the collector
         $out = [];
@@ -124,7 +123,7 @@ class DOExport extends DataObject implements PermissionProvider {
     }
 
     /**
-     * Processes the Export
+     * Processes the Import
      * @return [type] [description]
      */
     public function process() {
@@ -143,10 +142,10 @@ class DOExport extends DataObject implements PermissionProvider {
             try {
 
                 // get the source data
-                $list = new DataList($this->ExportClass);
+                $list = new DataList($this->ImportClass);
 
                 // get the fields we are exporting
-                $fields = ExportImportutils::all_fields($this->ExportClass);
+                $fields = ExportImportUtils::all_fields($this->ImportClass);
 
                 // init the collector
                 $out = [];
@@ -202,12 +201,7 @@ class DOExport extends DataObject implements PermissionProvider {
                 }
 
                 // what CSV are we looking at here
-                $dir = 'data-exports';
-                $fPath = $dir . '/' . $this->ID . '.csv';
-
-                // make sure the dir exists
-                if (!is_dir(ASSETS_PATH . '/' . $dir))
-                    mkdir(ASSETS_PATH . '/' . $dir, 777, true);
+                $fPath = 'data-exports/' . $this->ID . '.csv';
 
                 // write the CSV data
                 $fp = fopen(ASSETS_PATH . '/' . $fPath, 'w');
@@ -237,20 +231,20 @@ class DOExport extends DataObject implements PermissionProvider {
      */
     public function providePermissions() {
         return array(
-            "ACCESS_DO_EXPORT" => "Access DO Export Utility"
+            "ACCESS_DO_IMPORT" => "Access DO Import Utility"
         );
     }
 
     public function canCreate($member = false) {
-        return Permission::check('ACCESS_DO_EXPORT');
+        return Permission::check('ACCESS_DO_IMPORT');
     }
 
     public function canView($member = false) {
-        return Permission::check('ACCESS_DO_EXPORT');
+        return Permission::check('ACCESS_DO_IMPORT');
     }
 
     public function canEdit($member = false) {
-        return $this->ID ? false : Permission::check('ACCESS_DO_EXPORT');
+        return $this->ID ? false : Permission::check('ACCESS_DO_IMPORT');
     }
 
     public function canDelete($member = false) {
@@ -262,10 +256,10 @@ class DOExport extends DataObject implements PermissionProvider {
             return 'Scheduled - should begin processing within 2 minutes';
 
         if ($this->Status == 'processing')
-            return 'Export in progress';
+            return 'Import in progress';
 
        if ($this->Status == 'processed')
-           return $this->Success ? 'Export Complete' : 'Export Failed';
+           return $this->Success ? 'Import Complete' : 'Import Failed';
     }
 
     public function MemberName() {

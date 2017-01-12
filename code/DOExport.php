@@ -4,7 +4,8 @@ class DOExport extends DataObject implements PermissionProvider {
 
     private static $db = array(
         'ExportClass'   => 'Varchar(255)',
-        'CSVPath'       => 'Varchar(255)',
+        'FilePath'      => 'Varchar(255)',
+        'Format'        => 'Enum(\'CSV,JSON,TXT\',\'CSV\')',
         'Depth'         => 'Int',
         'Info'          => 'Text',
         'Status'        => 'Enum(\'new,processing,processed\',\'new\')',
@@ -17,13 +18,10 @@ class DOExport extends DataObject implements PermissionProvider {
 
     private static $summary_fields = array(
         'ExportClass',
+        'Format',
         'Status',
         'MemberName',
         'Created',
-    );
-
-    private static $defaults = array(
-        'Depth'
     );
 
     private static $default_sort = 'Created DESC';
@@ -36,9 +34,8 @@ class DOExport extends DataObject implements PermissionProvider {
             $fields->removeByName('Info');
             $fields->removeByName('Status');
             $fields->removeByName('Success');
-            $fields->removeByName('Message');
             $fields->removeByName('MemberID');
-            $fields->removeByName('CSVPath');
+            $fields->removeByName('FilePath');
             $fields->addFieldsToTab(
                 'Root.Main',
                 [
@@ -74,36 +71,33 @@ class DOExport extends DataObject implements PermissionProvider {
 
     protected function extractData($obj, $depth = 0) {
 
-        // are we in too deep?
-        if ($this->Depth > $depth) return null;
-
         // get the fields we are exporting
-        $fields = ExportImportutils::all_fields($this->ExportClass);
+        $fields = ExportImportutils::all_fields(get_class($obj));
 
         // init the collector
         $out = [];
 
         // loop the fields
-        foreach ($fields as $type => $fields) {
+        foreach ($fields as $type => $fData) {
 
             // always export the local columns
             if ($type == 'db') {
-                foreach ($fields as $name => $conf) {
-                    $out[$name] = $this->$name;
+                foreach ($fData as $name => $conf) {
+                    $out[$name] = $obj->$name;
                 }
             }
 
             // did we want to include any related columns
-            else if ((int) $this->Depth > 0) {
+            else if ((int) $this->Depth > $depth) {
 
                 // loop through the field data
-                foreach ($fields as $name => $conf) {
+                foreach ($fData as $name => $conf) {
 
                     // get the relation data
                     $rel = $obj->$name();
 
                     // is it a to many?
-                    if (is_a($rel, 'DataList')) {
+                    if (!is_a($rel, 'DataObject')) {
 
                         // init the collector
                         $out[$name] = [];
@@ -121,6 +115,9 @@ class DOExport extends DataObject implements PermissionProvider {
                 }
             }
         }
+
+        // deliver the package
+        return $out;
     }
 
     /**
@@ -162,21 +159,21 @@ class DOExport extends DataObject implements PermissionProvider {
                     $hRow = [];
 
                     // loop the fields
-                    foreach ($fields as $type => $fields) {
+                    foreach ($fields as $type => $fData) {
 
                         // do we need to create header row
                         if (empty($out)) {
 
                             // always export the local column headings
                             if ($type == 'db') {
-                                foreach ($fields as $name => $conf) {
+                                foreach ($fData as $name => $conf) {
                                     $hRow[] = $name;
                                 }
                             }
 
                             // did we want to include any related column headings
                             else if ((int) $this->Depth > 0) {
-                                foreach ($fields as $name => $conf) {
+                                foreach ($fData as $name => $conf) {
                                     $hRow[] = $name;
                                 }
                             }
@@ -184,38 +181,62 @@ class DOExport extends DataObject implements PermissionProvider {
 
                         // always export the local columns
                         if ($type == 'db') {
-                            foreach ($fields as $name => $conf) {
+                            foreach ($fData as $name => $conf) {
                                 $row[] = $data[$name];
                             }
                         }
 
                         // did we want to include any related columns
                         else if ((int) $this->Depth > 0) {
-                            foreach ($fields as $name => $conf) {
-                                $row[] = serialize($data[$name]);
+                            foreach ($fData as $name => $conf) {
+
+                                // Serialised TXT and JSON are nested
+                                // so they don't need to be transformed at this point
+                                $row[] = $this->Format == 'CSV'
+                                    ? json_encode($data[$name])
+                                    : $data[$name];
                             }
                         }
                     }
+
+                    // append header row
+                    if (!empty($hRow)) $out[] = $hRow;
 
                     // append the datas
                     $out[] = $row;
                 }
 
+                // die(print_r($out, 1));
+
                 // what CSV are we looking at here
                 $dir = 'data-exports';
-                $fPath = $dir . '/' . $this->ID . '.csv';
+                $fPath = $dir . '/' . $this->ID . '.' . strtolower($this->Format);
+                $fullPath = ASSETS_PATH . '/' . $fPath;
 
                 // make sure the dir exists
                 if (!is_dir(ASSETS_PATH . '/' . $dir))
                     mkdir(ASSETS_PATH . '/' . $dir, 777, true);
 
-                // write the CSV data
-                $fp = fopen(ASSETS_PATH . '/' . $fPath, 'w');
-                fputcsv($fp, $out, ',');
-                fclose($fp);
+                // write the file
+                switch ($this->Format) {
+
+                    case 'TXT':
+                        file_put_contents($fullPath, serialize($out));
+                        break;
+
+                    case 'JSON':
+                        file_put_contents($fullPath, json_encode($out));
+                        break;
+
+                    case 'CSV':
+                        $fp = fopen($fullPath, 'w');
+                        foreach ($out as $line) fputcsv($fp, $line);
+                        fclose($fp);
+                        break;
+                }
 
                 // yay
-                $this->CSVPath = $fPath;
+                $this->FilePath = $fPath;
                 $this->Success = true;
                 $this->write();
 
@@ -223,6 +244,8 @@ class DOExport extends DataObject implements PermissionProvider {
 
             // something went wrong
             catch (Exception $e) {
+
+                echo $e->getMessage();
 
                 // deliver the bad news
                 $this->Info = $e->getMessage();

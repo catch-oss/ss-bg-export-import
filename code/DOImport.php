@@ -3,20 +3,17 @@
 class DOImport extends DataObject implements PermissionProvider {
 
     private static $db = array(
-        'ImportClass'   => 'Varchar(255)',
-        'CSVPath'       => 'Varchar(255)',
-        'Depth'         => 'Int',
-        'Info'          => 'Text',
-        'Status'        => 'Enum(\'new,processing,processed\',\'new\')',
-        'Success'       => 'Boolean',
+        'Info'              => 'Text',
+        'Status'            => 'Enum(\'new,processing,processed\',\'new\')',
+        'Success'           => 'Boolean',
     );
 
     private static $has_one = array(
-        'Member'    => 'Member'
+        'Member'        => 'Member',
+        'ImportFile'    => 'File'
     );
 
     private static $summary_fields = array(
-        'ImportClass',
         'Status',
         'MemberName',
         'Created',
@@ -36,25 +33,14 @@ class DOImport extends DataObject implements PermissionProvider {
             $fields->removeByName('Info');
             $fields->removeByName('Status');
             $fields->removeByName('Success');
-            $fields->removeByName('Message');
             $fields->removeByName('MemberID');
+
+            $fileField = new UploadField('ImportFile', 'Import File');
+            $fileField->getValidator()->setAllowedExtensions(['txt','json','csv']);
+
             $fields->addFieldsToTab(
                 'Root.Main',
-                [
-                    new DropdownField('ImportClass', 'ImportClass', ExportImportUtils::data_classes_for_dd()),
-                    new DropdownField('Depth', 'Import Related Data to Depth', [
-                        '0' => 'Don\'t export related data',
-                        '1' => '1',
-                        '2' => '2',
-                        '3' => '3',
-                        '4' => '4',
-                        '5' => '5',
-                        '6' => '6',
-                        '7' => '7',
-                        '8' => '8',
-                        '9' => '9',
-                    ]),
-                ]
+                [$fileField]
             );
         }
 
@@ -71,41 +57,35 @@ class DOImport extends DataObject implements PermissionProvider {
                 $this->MemberID = $user->ID;
     }
 
-    protected function extractData($obj, $depth = 0) {
+    protected function importData($data) {
 
-        // are we in too deep?
-        if ($this->Depth > $depth) return null;
+        // create the object
+        $obj = ($data['ClassName'])::create();
 
         // get the fields we are exporting
-        $fields = ExportImportUtils::all_fields($this->ImportClass);
-
-        // init the collector
-        $out = [];
+        $fields = ExportImportUtils::all_fields($data['ClassName']);
 
         // loop the fields
-        foreach ($fields as $type => $fields) {
+        foreach ($fields as $type => $fData) {
 
             // always export the local columns
             if ($type == 'db') {
-                foreach ($fields as $name => $conf) {
-                    $out[$name] = $this->$name;
+                foreach ($fData as $name => $conf) {
+                    $obj->$name = $data[$name];
                 }
             }
 
             // did we want to include any related columns
-            else if ((int) $this->Depth > 0) {
+            else {
 
                 // loop through the field data
-                foreach ($fields as $name => $conf) {
+                foreach ($fData as $name => $conf) {
 
                     // get the relation data
                     $rel = $obj->$name();
 
                     // is it a to many?
-                    if (is_a($rel, 'DataList')) {
-
-                        // init the collector
-                        $out[$name] = [];
+                    if ($type == 'many_many' || $type == 'has_many') {
 
                         // accumulate items
                         foreach ($rel as $item) {
@@ -119,6 +99,15 @@ class DOImport extends DataObject implements PermissionProvider {
                     }
                 }
             }
+        }
+
+        // write the data
+        $obj->write();
+
+        // handle versioned objects
+        if ($obj->hasExtension('Versioned')) {
+            $obj->doRestoreToStage();
+            $obj->doPublish();
         }
     }
 

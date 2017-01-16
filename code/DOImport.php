@@ -57,10 +57,11 @@ class DOImport extends DataObject implements PermissionProvider {
                 $this->MemberID = $user->ID;
     }
 
-    protected function importData($data) {
+    protected function importData($data, $format) {
 
         // create the object
-        $obj = ($data['ClassName'])::create();
+        $cls = $data['ClassName'];
+        $obj = new $cls;
 
         // get the fields we are exporting
         $fields = ExportImportUtils::all_fields($data['ClassName']);
@@ -68,7 +69,7 @@ class DOImport extends DataObject implements PermissionProvider {
         // loop the fields
         foreach ($fields as $type => $fData) {
 
-            // always export the local columns
+            // always import the local columns
             if ($type == 'db') {
                 foreach ($fData as $name => $conf) {
                     $obj->$name = $data[$name];
@@ -82,20 +83,25 @@ class DOImport extends DataObject implements PermissionProvider {
                 foreach ($fData as $name => $conf) {
 
                     // get the relation data
-                    $rel = $obj->$name();
+                    $rel = $data[$name];
+
+                    // unpack the relation data if it was a csv import
+                    if ($format == 'CSV' && is_string($rel)) {
+                        $rel = json_decode($rel, true);
+                    }
 
                     // is it a to many?
                     if ($type == 'many_many' || $type == 'has_many') {
 
                         // accumulate items
                         foreach ($rel as $item) {
-                            $out[$name][] = $this->extractData($item, $depth + 1);
+                            $out[$name][] = $this->importData($item, $format);
                         }
                     }
 
                     // it's a to one
                     else {
-                        $out[$name] = $this->extractData($rel, $depth + 1);
+                        $out[$name] = $this->importData($rel, $format);
                     }
                 }
             }
@@ -131,77 +137,44 @@ class DOImport extends DataObject implements PermissionProvider {
             try {
 
                 // get the source data
-                $list = new DataList($this->ImportClass);
+                $type = strtoupper($this->ImportFile()->getExtension());
+                $raw = file_get_contents(ASSET_PATH . '/' . $this->ImportFile()->Filename);
 
-                // get the fields we are exporting
-                $fields = ExportImportUtils::all_fields($this->ImportClass);
+                // parse the data
+                switch ($type) {
 
-                // init the collector
-                $out = [];
+                    case 'CSV':
+                        $data = str_getcsv($raw);
+                        $headers = array_shift($data);
+                        break;
 
-                // loop the loop
-                foreach ($list as $item) {
+                    case 'JSON':
+                        $data = json_decode($raw, true);
+                        break;
 
-                    // extract the data from the object
-                    $data = $this->extractData($item);
-
-                    // init the row recievers
-                    $row = [];
-                    $hRow = [];
-
-                    // loop the fields
-                    foreach ($fields as $type => $fields) {
-
-                        // do we need to create header row
-                        if (empty($out)) {
-
-                            // always export the local column headings
-                            if ($type == 'db') {
-                                foreach ($fields as $name => $conf) {
-                                    $hRow[] = $name;
-                                }
-                            }
-
-                            // did we want to include any related column headings
-                            else if ((int) $this->Depth > 0) {
-                                foreach ($fields as $name => $conf) {
-                                    $hRow[] = $name;
-                                }
-                            }
-                        }
-
-                        // always export the local columns
-                        if ($type == 'db') {
-                            foreach ($fields as $name => $conf) {
-                                $row[] = $data[$name];
-                            }
-                        }
-
-                        // did we want to include any related columns
-                        else if ((int) $this->Depth > 0) {
-                            foreach ($fields as $name => $conf) {
-                                $row[] = serialize($data[$name]);
-                            }
-                        }
-                    }
-
-                    // append the datas
-                    $out[] = $row;
+                    case 'TXT':
+                        $data = unserialize($raw);
+                        break;
                 }
 
-                // what CSV are we looking at here
-                $fPath = 'data-exports/' . $this->ID . '.csv';
+                // loop the loop
+                foreach ($data as $item) {
 
-                // write the CSV data
-                $fp = fopen(ASSETS_PATH . '/' . $fPath, 'w');
-                fputcsv($fp, $out, ',');
-                fclose($fp);
+                    // parse the "row data"
+                    if ($type == 'CSV') {
+                        $parsed = [];
+                        foreach ($headers as $idx => $field) {
+                            $parsed[$field] = $item[$idx];
+                        }
+                    }
+                    else $parsed = $item;
 
-                // yay
-                $this->CSVPath = $fPath;
+                    // import
+                    $this->importData($parsed, $type);
+                }
+
                 $this->Success = true;
                 $this->write();
-
             }
 
             // something went wrong

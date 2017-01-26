@@ -104,13 +104,17 @@ class DOExport extends DataObject implements PermissionProvider {
 
                         // accumulate items
                         foreach ($rel as $item) {
-                            $out[$name][] = $this->extractData($item, $depth + 1);
+                            $out[$name][] = !empty($item->ID)
+                                ? $this->extractData($item, $depth + 1)
+                                : null;
                         }
                     }
 
                     // it's a to one
                     else {
-                        $out[$name] = $this->extractData($rel, $depth + 1);
+                        $out[$name] = !empty($rel->ID)
+                            ? $this->extractData($rel, $depth + 1)
+                            : null;
                     }
                 }
             }
@@ -161,20 +165,24 @@ class DOExport extends DataObject implements PermissionProvider {
                     // loop the fields
                     foreach ($fields as $type => $fData) {
 
-                        // do we need to create header row
-                        if (empty($out)) {
+                        // only CSV reqires a header row
+                        if ($this->Format == 'CSV') {
 
-                            // always export the local column headings
-                            if ($type == 'db') {
-                                foreach ($fData as $name => $conf) {
-                                    $hRow[] = $name;
+                            // do we need to create header row
+                            if (empty($out)) {
+
+                                // always export the local column headings
+                                if ($type == 'db') {
+                                    foreach ($fData as $name => $conf) {
+                                        $hRow[] = $name;
+                                    }
                                 }
-                            }
 
-                            // did we want to include any related column headings
-                            else if ((int) $this->Depth > 0) {
-                                foreach ($fData as $name => $conf) {
-                                    $hRow[] = $name;
+                                // did we want to include any related column headings
+                                else if ((int) $this->Depth > 0) {
+                                    foreach ($fData as $name => $conf) {
+                                        $hRow[] = $name;
+                                    }
                                 }
                             }
                         }
@@ -182,7 +190,8 @@ class DOExport extends DataObject implements PermissionProvider {
                         // always export the local columns
                         if ($type == 'db') {
                             foreach ($fData as $name => $conf) {
-                                $row[] = $data[$name];
+                                if ($this->Format == 'CSV') $row[] = $data[$name];
+                                else $row[$name] = $data[$name];
                             }
                         }
 
@@ -192,9 +201,9 @@ class DOExport extends DataObject implements PermissionProvider {
 
                                 // Serialised TXT and JSON are nested
                                 // so they don't need to be transformed at this point
-                                $row[] = $this->Format == 'CSV'
-                                    ? json_encode($data[$name])
-                                    : $data[$name];
+                                $this->Format == 'CSV'
+                                    ? $row[] = json_encode($data[$name])
+                                    : $row[$name] = $data[$name];
                             }
                         }
                     }

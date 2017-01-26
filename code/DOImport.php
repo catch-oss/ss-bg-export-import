@@ -59,12 +59,18 @@ class DOImport extends DataObject implements PermissionProvider {
 
     protected function importData($data, $format) {
 
+        if (empty($data['ClassName'])) {
+            print_r($data);
+        }
+
         // create the object
         $cls = $data['ClassName'];
-        $obj = new $cls;
+        if (!$obj = DataObject::get_by_id($cls, $data['ID'])) {
+            $obj =  new $cls;
+        }
 
         // get the fields we are exporting
-        $fields = ExportImportUtils::all_fields($data['ClassName']);
+        $fields = ExportImportUtils::all_fields($cls);
 
         // loop the fields
         foreach ($fields as $type => $fData) {
@@ -72,7 +78,10 @@ class DOImport extends DataObject implements PermissionProvider {
             // always import the local columns
             if ($type == 'db') {
                 foreach ($fData as $name => $conf) {
-                    $obj->$name = $data[$name];
+
+                    // dont carry forward the version number
+                    if ($name != 'Version')
+                        $obj->$name = $data[$name];
                 }
             }
 
@@ -82,26 +91,30 @@ class DOImport extends DataObject implements PermissionProvider {
                 // loop through the field data
                 foreach ($fData as $name => $conf) {
 
-                    // get the relation data
-                    $rel = $data[$name];
+                    if (isset($data[$name])) {
 
-                    // unpack the relation data if it was a csv import
-                    if ($format == 'CSV' && is_string($rel)) {
-                        $rel = json_decode($rel, true);
-                    }
+                        // get the relation data
+                        $rel = $data[$name];
 
-                    // is it a to many?
-                    if ($type == 'many_many' || $type == 'has_many') {
-
-                        // accumulate items
-                        foreach ($rel as $item) {
-                            $out[$name][] = $this->importData($item, $format);
+                        // unpack the relation data if it was a csv import
+                        if ($format == 'CSV' && is_string($rel)) {
+                            $rel = json_decode($rel, true);
                         }
-                    }
 
-                    // it's a to one
-                    else {
-                        $out[$name] = $this->importData($rel, $format);
+                        // is it a to many?
+                        if ($type == 'many_many' || $type == 'has_many') {
+
+                            // accumulate items
+                            foreach ($rel as $item) {
+                                $obj->$name()->add($this->importData($item, $format));
+                            }
+                        }
+
+                        // it's a to one
+                        else {
+                            $imported = $this->importData($rel, $format);
+                            $obj->{$name . 'ID'} = $imported->ID;
+                        }
                     }
                 }
             }
@@ -115,6 +128,9 @@ class DOImport extends DataObject implements PermissionProvider {
             $obj->doRestoreToStage();
             $obj->doPublish();
         }
+
+        // return the obj
+        return $obj;
     }
 
     /**
@@ -126,19 +142,27 @@ class DOImport extends DataObject implements PermissionProvider {
         // we don't want to try this more than once
         if ($this->Status == 'new') {
 
-            // Let everyone know this is being processed
-            $this->Status = 'processing';
-            $this->write();
-
-            // if it goes bad here we don't want to end up back in this place
-            $this->Status = 'processed';
+            // // Let everyone know this is being processed
+            // $this->Status = 'processing';
+            // $this->write();
+            //
+            // // if it goes bad here we don't want to end up back in this place
+            // $this->Status = 'processed';
 
             // try to get the package
             try {
 
                 // get the source data
                 $type = strtoupper($this->ImportFile()->getExtension());
-                $raw = file_get_contents(ASSET_PATH . '/' . $this->ImportFile()->Filename);
+                $raw = file_get_contents(
+                    str_replace('assets/assets', 'assets', ASSETS_PATH . '/' . $this->ImportFile()->Filename)
+                );
+
+                // echo $this->ImportFile()->Filename . ' // ' .
+                // $this->ImportFile()->getExtension() . ' // ' .$type . "<br>\n";
+
+                // if there's no type we can't processes
+                if (!$type) throw new Exception('Unable to process - did you upload a file?');
 
                 // parse the data
                 switch ($type) {
@@ -157,12 +181,14 @@ class DOImport extends DataObject implements PermissionProvider {
                         break;
                 }
 
+
                 // loop the loop
                 foreach ($data as $item) {
 
                     // parse the "row data"
                     if ($type == 'CSV') {
                         $parsed = [];
+                        // print_r($headers);
                         foreach ($headers as $idx => $field) {
                             $parsed[$field] = $item[$idx];
                         }
@@ -182,6 +208,7 @@ class DOImport extends DataObject implements PermissionProvider {
 
                 // deliver the bad news
                 $this->Info = $e->getMessage();
+                $this->Status = 'processed';
                 $this->write();
             }
         }

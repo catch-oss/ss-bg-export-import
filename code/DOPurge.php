@@ -4,7 +4,7 @@ class DOPurge extends DataObject implements PermissionProvider {
 
     private static $db = array(
         'PurgeClass'        => 'Varchar(255)',
-        'Filter'            => 'Varchar(255)',
+        'Filter'            => 'Text',
         'Info'              => 'Text',
         'Status'            => 'Enum(\'new,processing,processed\',\'new\')',
         'Success'           => 'Boolean',
@@ -39,6 +39,7 @@ class DOPurge extends DataObject implements PermissionProvider {
                 'Root.Main',
                 [
                     new DropdownField('PurgeClass', 'PurgeClass', ExportImportUtils::data_classes_for_dd()),
+                    new TextareaField('Filter', 'Filter SQL (Optional)'),
                 ]
             );
         }

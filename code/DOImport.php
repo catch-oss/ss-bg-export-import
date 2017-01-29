@@ -59,9 +59,7 @@ class DOImport extends DataObject implements PermissionProvider {
 
     protected function importData($data, $format) {
 
-        if (empty($data['ClassName'])) {
-            print_r($data);
-        }
+        // print_r($data);
 
         // create the object
         $cls = $data['ClassName'];
@@ -79,9 +77,12 @@ class DOImport extends DataObject implements PermissionProvider {
             if ($type == 'db') {
                 foreach ($fData as $name => $conf) {
 
+
                     // dont carry forward the version number
-                    if ($name != 'Version')
+                    if ($name != 'Version') {
+                        // echo " / " . $name . ':' . $data[$name] . "\n";
                         $obj->$name = $data[$name];
+                    }
                 }
             }
 
@@ -111,7 +112,7 @@ class DOImport extends DataObject implements PermissionProvider {
                         }
 
                         // it's a to one
-                        else {
+                        else if ($rel) {
                             $imported = $this->importData($rel, $format);
                             $obj->{$name . 'ID'} = $imported->ID;
                         }
@@ -131,6 +132,36 @@ class DOImport extends DataObject implements PermissionProvider {
 
         // return the obj
         return $obj;
+    }
+
+    protected function parseCSV($path) {
+
+        // init some vars
+        $out = [];
+
+        // parse the csv into an array of arrays
+        if (($handle = fopen($path, 'r')) !== false) {
+            while (($data = fgetcsv($handle)) !== false) {
+                $num = count($data);
+                $rowData = [];
+                for ($c=0; $c < $num; $c++) {
+                    $rowData[] = $data[$c];
+                }
+                $out[] = $rowData;
+            }
+            fclose($handle);
+        }
+
+        // convert to associative array
+        array_walk($out, function(&$a) use ($out) {
+            $a = array_combine($out[0], $a);
+        });
+
+        // remove headers
+        array_shift($out);
+
+        // return structured assoiative array
+        return $out;
     }
 
     /**
@@ -154,9 +185,7 @@ class DOImport extends DataObject implements PermissionProvider {
 
                 // get the source data
                 $type = strtoupper($this->ImportFile()->getExtension());
-                $raw = file_get_contents(
-                    str_replace('assets/assets', 'assets', ASSETS_PATH . '/' . $this->ImportFile()->Filename)
-                );
+                $path = str_replace('assets/assets', 'assets', ASSETS_PATH . '/' . $this->ImportFile()->Filename);
 
                 // echo $this->ImportFile()->Filename . ' // ' .
                 // $this->ImportFile()->getExtension() . ' // ' .$type . "<br>\n";
@@ -168,35 +197,25 @@ class DOImport extends DataObject implements PermissionProvider {
                 switch ($type) {
 
                     case 'CSV':
-                        $data = str_getcsv($raw);
-                        $headers = array_shift($data);
+                        $data = $this->parseCSV($path);
                         break;
 
                     case 'JSON':
+                        $raw = file_get_contents($path);
                         $data = json_decode($raw, true);
                         break;
 
                     case 'TXT':
+                        $raw = file_get_contents($path);
                         $data = unserialize($raw);
                         break;
                 }
 
-
                 // loop the loop
                 foreach ($data as $item) {
 
-                    // parse the "row data"
-                    if ($type == 'CSV') {
-                        $parsed = [];
-                        // print_r($headers);
-                        foreach ($headers as $idx => $field) {
-                            $parsed[$field] = $item[$idx];
-                        }
-                    }
-                    else $parsed = $item;
-
                     // import
-                    $this->importData($parsed, $type);
+                    if ($item) $this->importData($item, $type);
                 }
 
                 $this->Success = true;
@@ -205,6 +224,8 @@ class DOImport extends DataObject implements PermissionProvider {
 
             // something went wrong
             catch (Exception $e) {
+
+                echo $e->getMessage();
 
                 // deliver the bad news
                 $this->Info = $e->getMessage();

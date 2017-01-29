@@ -8,7 +8,8 @@ class ExportImportAdmin extends ModelAdmin {
      */
     private static $managed_models = array(
         'DOImport',
-        'DOExport'
+        'DOExport',
+        'DOPurge'
     );
 
     /**

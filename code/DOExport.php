@@ -5,6 +5,7 @@ class DOExport extends DataObject implements PermissionProvider {
     private static $db = array(
         'ExportClass'   => 'Varchar(255)',
         'FilePath'      => 'Varchar(255)',
+        'Filter'        => 'Text',
         'Format'        => 'Enum(\'CSV,JSON,TXT\',\'CSV\')',
         'Depth'         => 'Int',
         'Info'          => 'Text',
@@ -52,6 +53,7 @@ class DOExport extends DataObject implements PermissionProvider {
                         '8' => '8',
                         '9' => '9',
                     ]),
+                    new TextareaField('Filter', 'Filter SQL (Optional)'),
                 ]
             );
         }
@@ -145,6 +147,9 @@ class DOExport extends DataObject implements PermissionProvider {
 
                 // get the source data
                 $list = new DataList($this->ExportClass);
+
+                // are we filtering
+                if ($this->Filter) $list = $list->where($this->Filter);
 
                 // get the fields we are exporting
                 $fields = ExportImportutils::all_fields($this->ExportClass);

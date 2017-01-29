@@ -274,7 +274,7 @@ class DOExport extends DataObject implements PermissionProvider {
      */
     public function providePermissions() {
         return array(
-            "ACCESS_DO_EXPORT" => "Access DO Export Utility"
+            "ACCESS_DO_EXPORT" => "Access Data Object Export Utility"
         );
     }
 

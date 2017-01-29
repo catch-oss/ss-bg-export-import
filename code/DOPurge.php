@@ -58,7 +58,7 @@ class DOPurge extends DataObject implements PermissionProvider {
     }
 
     /**
-     * Processes the Import
+     * Processes the Purge
      * @return [type] [description]
      */
     public function process() {
@@ -76,27 +76,49 @@ class DOPurge extends DataObject implements PermissionProvider {
             // try to get the package
             try {
 
-                // find the things
-                $list = new DataList($this->PurgeClass);
+                // get some versioning info
+                $isVersioned = (
+                    singleton($this->PurgeClass)->hasExtension('Versioned') ||
+                    singleton($this->PurgeClass)->hasExtension('VersionedDataObject')
+                );
+                $stages = ['Stage', 'Live'];
 
-                // handle versioned objects
-                if (singleton($this->PurgeClass)->hasExtension('Versioned'))
-                    $listV = Versioned::get_by_stage($this->PurgeClass, 'Stage');
+                // treat versioned  classes differently
+                if ($isVersioned) {
 
-                // do we want to filter them
-                if ($this->Filter) {
-                    $list = $list->where($this->Filter);
-                    $listV = $listV->where($this->Filter);
+                    foreach ($stages as $stage) {
+
+                        // make a list
+                        $list = Versioned::get_by_stage($this->PurgeClass, $stage);
+
+                        // do we want to filter them
+                        if ($this->Filter) $list->where($this->Filter);
+
+                        // helpful output
+                        echo 'Removing ' . $list->count() . ' items from ' . $stage . "\n";
+
+                        // delete stuff
+                        foreach ($list as $item) {
+
+                            // oddly some things dont have IDs?
+                            if ($item->ID) $item->deleteFromStage($stage);
+                            if ($item->ID) $item->delete();
+                        }
+                    }
                 }
+                else {
 
-                // delete the live stuff
-                foreach ($list as $item) {
-                    $item->delete();
-                }
+                    // make a list
+                    $list = new DataList($this->PurgeClass);
 
-                // delete from stage
-                foreach ($listV as $item) {
-                    $item->deleteFromStage('Stage');
+                    // do we want to filter them
+                    if ($this->Filter) $list->where($this->Filter);
+
+                    // helpful output
+                    echo 'Removing ' . $list->count() . ' items' . "\n";
+
+                    // delete stuff
+                    foreach ($list as $item) $item->delete();
                 }
 
                 // update the record
@@ -108,7 +130,7 @@ class DOPurge extends DataObject implements PermissionProvider {
             catch (Exception $e) {
 
                 // deliver the bad news
-                $this->Info = $e->getMessage();
+                $this->Info .= $e->getMessage();
                 $this->write();
             }
         }
@@ -120,20 +142,20 @@ class DOPurge extends DataObject implements PermissionProvider {
      */
     public function providePermissions() {
         return array(
-            "ACCESS_DO_IMPORT" => "Access DO Import Utility"
+            "ACCESS_DO_PURGE" => "Access Data Object Purge Utility"
         );
     }
 
     public function canCreate($member = false) {
-        return Permission::check('ACCESS_DO_IMPORT');
+        return Permission::check('ACCESS_DO_PURGE');
     }
 
     public function canView($member = false) {
-        return Permission::check('ACCESS_DO_IMPORT');
+        return Permission::check('ACCESS_DO_PURGE');
     }
 
     public function canEdit($member = false) {
-        return $this->ID ? false : Permission::check('ACCESS_DO_IMPORT');
+        return $this->ID ? false : Permission::check('ACCESS_DO_PURGE');
     }
 
     public function canDelete($member = false) {
@@ -145,10 +167,10 @@ class DOPurge extends DataObject implements PermissionProvider {
             return 'Scheduled - should begin processing within 2 minutes';
 
         if ($this->Status == 'processing')
-            return 'Import in progress';
+            return 'Purge in progress';
 
        if ($this->Status == 'processed')
-           return $this->Success ? 'Import Complete' : 'Import Failed';
+           return $this->Success ? 'Purge Complete' : 'Purge Failed';
     }
 
     public function MemberName() {

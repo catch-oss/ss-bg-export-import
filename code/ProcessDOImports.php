@@ -7,7 +7,7 @@ class ProcessDOImports extends CLIController implements CronTask {
      * @return string with the cron time schedule
      */
     public function getSchedule() {
-        return "* * * * *";
+        return '* * * * *';
     }
 
     /**

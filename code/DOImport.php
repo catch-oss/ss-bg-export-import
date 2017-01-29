@@ -59,11 +59,12 @@ class DOImport extends DataObject implements PermissionProvider {
 
     protected function importData($data, $format) {
 
-        // print_r($data);
-
         // create the object
         $cls = $data['ClassName'];
         if (!$obj = DataObject::get_by_id($cls, $data['ID'])) {
+
+             // it's a new record - we need to let SS give it an ID
+            unset($data['ID']);
             $obj =  new $cls;
         }
 
@@ -77,11 +78,11 @@ class DOImport extends DataObject implements PermissionProvider {
             if ($type == 'db') {
                 foreach ($fData as $name => $conf) {
 
-
                     // dont carry forward the version number
                     if ($name != 'Version') {
-                        // echo " / " . $name . ':' . $data[$name] . "\n";
-                        $obj->$name = $data[$name];
+                        $obj->$name = empty($data[$name])
+                            ? null
+                            : $data[$name];
                     }
                 }
             }
@@ -122,13 +123,23 @@ class DOImport extends DataObject implements PermissionProvider {
         }
 
         // write the data
-        $obj->write();
+        $w = $r = $p = $obj->write();
 
         // handle versioned objects
-        if ($obj->hasExtension('Versioned')) {
-            $obj->doRestoreToStage();
-            $obj->doPublish();
+        if (
+            $obj->hasExtension('Versioned') ||
+            $obj->hasExtension('VersionedDataObject')
+        ) {
+            $r = $obj->doRestoreToStage();
+            $p = $obj->doPublish();
         }
+
+        // helpful output
+        echo 'Updated Record ' . $obj->ClassName . ' #' . $obj->ID .
+            ' write: ' . ($w ? ' Success' : ' fail') .
+            ' restore: ' . ($r ? ' Success' : ' fail') .
+            ' publish: ' . ($p ? ' Success' : ' fail') .
+            "\n";
 
         // return the obj
         return $obj;
@@ -187,9 +198,6 @@ class DOImport extends DataObject implements PermissionProvider {
                 $type = strtoupper($this->ImportFile()->getExtension());
                 $path = str_replace('assets/assets', 'assets', ASSETS_PATH . '/' . $this->ImportFile()->Filename);
 
-                // echo $this->ImportFile()->Filename . ' // ' .
-                // $this->ImportFile()->getExtension() . ' // ' .$type . "<br>\n";
-
                 // if there's no type we can't processes
                 if (!$type) throw new Exception('Unable to process - did you upload a file?');
 
@@ -211,6 +219,9 @@ class DOImport extends DataObject implements PermissionProvider {
                         break;
                 }
 
+                // helpful output
+                echo 'processing ' . count($data) . ' root level records' . "\n";
+
                 // loop the loop
                 foreach ($data as $item) {
 
@@ -224,8 +235,6 @@ class DOImport extends DataObject implements PermissionProvider {
 
             // something went wrong
             catch (Exception $e) {
-
-                echo $e->getMessage();
 
                 // deliver the bad news
                 $this->Info = $e->getMessage();
@@ -241,7 +250,7 @@ class DOImport extends DataObject implements PermissionProvider {
      */
     public function providePermissions() {
         return array(
-            "ACCESS_DO_IMPORT" => "Access DO Import Utility"
+            "ACCESS_DO_IMPORT" => "Access Data Object Import Utility"
         );
     }
 

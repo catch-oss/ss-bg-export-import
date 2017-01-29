@@ -1,6 +1,6 @@
 <?php
 
-class ProcessDOExports extends CLIController implements CronTask {
+class ProcessDOPurges extends CLIController implements CronTask {
 
     /**
      * Init cron schedule
@@ -19,7 +19,7 @@ class ProcessDOExports extends CLIController implements CronTask {
         $eol = php_sapi_name() == 'cli' ? "\n" : '<br>';
 
         // get all the unprocessed CTA Imports
-        $objs = DataObject::get('DOExport', "Status='new'")->sort('Created');
+        $objs = DataObject::get('DOPurge', "Status='new'")->sort('Created');
 
         // process them
         foreach ($objs as $obj) {
@@ -28,7 +28,7 @@ class ProcessDOExports extends CLIController implements CronTask {
             $obj->process();
 
             // status
-            echo 'DO Export #' . $obj->ID . ' has been processed. ' . $eol .
+            echo 'DO Import #' . $obj->ID . ' has been processed. ' . $eol .
                  'Status: ' . $obj->Status . $eol .
                  'Success: ' . ($obj->Success ? 'Yes' : 'No') . $eol . $eol;
         }

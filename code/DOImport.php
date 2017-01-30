@@ -184,12 +184,12 @@ class DOImport extends DataObject implements PermissionProvider {
         // we don't want to try this more than once
         if ($this->Status == 'new') {
 
-            // // Let everyone know this is being processed
-            // $this->Status = 'processing';
-            // $this->write();
-            //
-            // // if it goes bad here we don't want to end up back in this place
-            // $this->Status = 'processed';
+            // Let everyone know this is being processed
+            $this->Status = 'processing';
+            $this->write();
+
+            // if it goes bad here we don't want to end up back in this place
+            $this->Status = 'processed';
 
             // try to get the package
             try {

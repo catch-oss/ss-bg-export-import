@@ -155,7 +155,7 @@ class DOExport extends DataObject implements PermissionProvider {
 
     /**
      * Processes the Export
-     * Each row will use ~ 10MB RAM so need to chunk the Export
+     * Each row will use ~ 10MiB RAM so need to chunk the Export
      * chunkSize = (memlimit / 1024 / 1024 / 10 / (1 + depth));
      * at the end of each chunk we need to free as much RAM as possible
      * download will need to zip the files, free RAM then, do a passthru serve:
@@ -164,8 +164,13 @@ class DOExport extends DataObject implements PermissionProvider {
      */
     public function process() {
 
+        // eol
+        $eol = php_sapi_name() == 'cli' ? "\n" : '<br>';
+
         // we don't want to try this more than once
         if ($this->Status == 'new') {
+
+            $memLimit = ini_set('memory_limit', '512M');
 
             // Let everyone know this is being processed
             $this->Status = 'processing';

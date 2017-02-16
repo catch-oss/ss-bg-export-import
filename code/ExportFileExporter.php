@@ -30,7 +30,7 @@ class ExportFileExporter extends Controller {
             exit;
         }
 
-        // write the file
+        // make the right mime type
         switch ($export->Format) {
 
             case 'TXT':

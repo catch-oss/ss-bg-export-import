@@ -74,6 +74,9 @@ class DOPurge extends DataObject implements PermissionProvider {
      */
     public function process() {
 
+        // eol
+        $eol = php_sapi_name() == 'cli' ? "\n" : '<br>';
+
         // we don't want to try this more than once
         if ($this->Status == 'new') {
 

@@ -8,6 +8,8 @@ class DOExport extends DataObject implements PermissionProvider {
         'Filter'        => 'Text',
         'Format'        => 'Enum(\'CSV,JSON,TXT\',\'CSV\')',
         'Depth'         => 'Int',
+        'JobSize'       => 'Int',
+        'JobProgress'   => 'Int',
         'Info'          => 'Text',
         'Status'        => 'Enum(\'new,processing,processed\',\'new\')',
         'Success'       => 'Boolean',
@@ -22,7 +24,10 @@ class DOExport extends DataObject implements PermissionProvider {
         'Format',
         'Status',
         'MemberName',
+        'JobSize',
+        'JobProgress',
         'Created',
+        'LastEdited',
     );
 
     private static $default_sort = 'Created DESC';
@@ -37,10 +42,12 @@ class DOExport extends DataObject implements PermissionProvider {
             $fields->removeByName('Success');
             $fields->removeByName('MemberID');
             $fields->removeByName('FilePath');
+            $fields->removeByName('JobSize');
+            $fields->removeByName('JobProgress');
             $fields->addFieldsToTab(
                 'Root.Main',
                 [
-                    new DropdownField('ExportClass', 'ExportClass', ExportImportUtils::data_classes_for_dd()),
+                    new DropdownField('ExportClass', 'Export Class', ExportImportUtils::data_classes_for_dd()),
                     new DropdownField('Depth', 'Export Related Data to Depth', [
                         '0' => 'Don\'t export related data',
                         '1' => '1',
@@ -56,6 +63,22 @@ class DOExport extends DataObject implements PermissionProvider {
                     new TextareaField('Filter', 'Filter SQL (Optional)'),
                 ]
             );
+        }
+
+        else {
+
+            // display the link if it's apropriate
+            if ($this->Status == 'processed' && $this->Success) {
+                $fields->addFieldToTab(
+                    'Root.Main',
+                    new LiteralField('FilePath', '<p class="field"><a href="/ExportFileExporter/export/' . $this->ID . '">Download Export File</a></p>')
+                );
+            }
+
+            // don't display things if we dont need to
+            else {
+                $fields->removeByName('FilePath');
+            }
         }
 
         return $fields;
@@ -139,8 +162,8 @@ class DOExport extends DataObject implements PermissionProvider {
             $this->Status = 'processing';
             $this->write();
 
-            // if it goes bad here we don't want to end up back in this place
-            $this->Status = 'processed';
+            // helpful output
+            echo 'processing export #' . $this->ID . "\n";
 
             // try to get the package
             try {
@@ -156,6 +179,13 @@ class DOExport extends DataObject implements PermissionProvider {
 
                 // init the collector
                 $out = [];
+
+                // update record
+                $this->JobSize = $list->count();
+                $this->write();
+
+                // helpful output
+                echo 'processing ' . $list->count() . ' root level records' . "\n";
 
                 // loop the loop
                 foreach ($list as $item) {
@@ -218,6 +248,10 @@ class DOExport extends DataObject implements PermissionProvider {
 
                     // append the datas
                     $out[] = $row;
+
+                    // update the progress
+                    $this->JobProgress++;
+                    $this->write();
                 }
 
                 // die(print_r($out, 1));
@@ -229,7 +263,10 @@ class DOExport extends DataObject implements PermissionProvider {
 
                 // make sure the dir exists
                 if (!is_dir(ASSETS_PATH . '/' . $dir))
-                    mkdir(ASSETS_PATH . '/' . $dir, 777, true);
+                    mkdir(ASSETS_PATH . '/' . $dir, 766, true);
+
+                // make sure there's an htaccess file blocking access
+                file_put_contents('Require all denied', ASSETS_PATH . '/' . $dir . '/.htaccess');
 
                 // write the file
                 switch ($this->Format) {
@@ -250,6 +287,7 @@ class DOExport extends DataObject implements PermissionProvider {
                 }
 
                 // yay
+                $this->Status = 'processed';
                 $this->FilePath = $fPath;
                 $this->Success = true;
                 $this->write();
@@ -262,6 +300,7 @@ class DOExport extends DataObject implements PermissionProvider {
                 echo $e->getMessage();
 
                 // deliver the bad news
+                $this->Status = 'processed';
                 $this->Info = $e->getMessage();
                 $this->write();
             }

@@ -8,6 +8,8 @@ class DOPurge extends DataObject implements PermissionProvider {
         'Info'              => 'Text',
         'Status'            => 'Enum(\'new,processing,processed\',\'new\')',
         'Success'           => 'Boolean',
+        'JobSize'           => 'Int',
+        'JobProgress'       => 'Int',
     );
 
     private static $has_one = array(
@@ -17,7 +19,10 @@ class DOPurge extends DataObject implements PermissionProvider {
     private static $summary_fields = array(
         'Status',
         'MemberName',
+        'JobSize',
+        'JobProgress',
         'Created',
+        'LastEdited',
     );
 
     private static $defaults = array(
@@ -31,10 +36,14 @@ class DOPurge extends DataObject implements PermissionProvider {
 
         // set up the fields for new records
         if (!$this->ID) {
+
             $fields->removeByName('Info');
             $fields->removeByName('Status');
             $fields->removeByName('Success');
             $fields->removeByName('MemberID');
+            $fields->removeByName('JobSize');
+            $fields->removeByName('JobProgress');
+
             $fields->addFieldsToTab(
                 'Root.Main',
                 [
@@ -70,8 +79,8 @@ class DOPurge extends DataObject implements PermissionProvider {
             $this->Status = 'processing';
             $this->write();
 
-            // if it goes bad here we don't want to end up back in this place
-            $this->Status = 'processed';
+            // helpful output
+            echo 'processing purge #' . $this->ID . "\n";
 
             // try to get the package
             try {
@@ -97,12 +106,20 @@ class DOPurge extends DataObject implements PermissionProvider {
                         // helpful output
                         echo 'Removing ' . $list->count() . ' items from ' . $stage . "\n";
 
+                        // update record
+                        $this->JobSize += $list->count();
+                        $this->write();
+
                         // delete stuff
                         foreach ($list as $item) {
 
                             // oddly some things dont have IDs?
                             if ($item->ID) $item->deleteFromStage($stage);
                             if ($item->ID) $item->delete();
+
+                            // update the progress
+                            $this->JobProgress++;
+                            $this->write();
                         }
                     }
                 }
@@ -117,11 +134,24 @@ class DOPurge extends DataObject implements PermissionProvider {
                     // helpful output
                     echo 'Removing ' . $list->count() . ' items' . "\n";
 
+                    // update record
+                    $this->JobSize += $list->count();
+                    $this->write();
+
                     // delete stuff
-                    foreach ($list as $item) $item->delete();
+                    foreach ($list as $item) {
+
+                        // oddly some things dont have IDs?
+                        if ($item->ID) $item->delete();
+
+                        // update the progress
+                        $this->JobProgress++;
+                        $this->write();
+                    }
                 }
 
                 // update the record
+                $this->Status = 'processed';
                 $this->Success = true;
                 $this->write();
             }
@@ -130,6 +160,7 @@ class DOPurge extends DataObject implements PermissionProvider {
             catch (Exception $e) {
 
                 // deliver the bad news
+                $this->Status = 'processed';
                 $this->Info .= $e->getMessage();
                 $this->write();
             }

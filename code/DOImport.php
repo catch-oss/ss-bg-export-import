@@ -6,6 +6,8 @@ class DOImport extends DataObject implements PermissionProvider {
         'Info'              => 'Text',
         'Status'            => 'Enum(\'new,processing,processed\',\'new\')',
         'Success'           => 'Boolean',
+        'JobSize'           => 'Int',
+        'JobProgress'       => 'Int',
     );
 
     private static $has_one = array(
@@ -16,7 +18,10 @@ class DOImport extends DataObject implements PermissionProvider {
     private static $summary_fields = array(
         'Status',
         'MemberName',
+        'JobSize',
+        'JobProgress',
         'Created',
+        'LastEdited',
     );
 
     private static $defaults = array(
@@ -34,6 +39,8 @@ class DOImport extends DataObject implements PermissionProvider {
             $fields->removeByName('Status');
             $fields->removeByName('Success');
             $fields->removeByName('MemberID');
+            $fields->removeByName('JobSize');
+            $fields->removeByName('JobProgress');
 
             $fileField = new UploadField('ImportFile', 'Import File');
             $fileField->getValidator()->setAllowedExtensions(['txt','json','csv']);
@@ -188,8 +195,8 @@ class DOImport extends DataObject implements PermissionProvider {
             $this->Status = 'processing';
             $this->write();
 
-            // if it goes bad here we don't want to end up back in this place
-            $this->Status = 'processed';
+            // helpful output
+            echo 'processing import #' . $this->ID . "\n";
 
             // try to get the package
             try {
@@ -222,13 +229,22 @@ class DOImport extends DataObject implements PermissionProvider {
                 // helpful output
                 echo 'processing ' . count($data) . ' root level records' . "\n";
 
+                // update record
+                $this->JobSize = count($data);
+                $this->write();
+
                 // loop the loop
                 foreach ($data as $item) {
 
                     // import
                     if ($item) $this->importData($item, $type);
+
+                    // update the progress
+                    $this->JobProgress++;
+                    $this->write();
                 }
 
+                $this->Status = 'processed';
                 $this->Success = true;
                 $this->write();
             }
@@ -237,8 +253,8 @@ class DOImport extends DataObject implements PermissionProvider {
             catch (Exception $e) {
 
                 // deliver the bad news
-                $this->Info = $e->getMessage();
                 $this->Status = 'processed';
+                $this->Info = $e->getMessage();
                 $this->write();
             }
         }

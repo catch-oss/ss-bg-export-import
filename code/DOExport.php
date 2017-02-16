@@ -10,6 +10,7 @@ class DOExport extends DataObject implements PermissionProvider {
         'Depth'         => 'Int',
         'JobSize'       => 'Int',
         'JobProgress'   => 'Int',
+        'JobMemoryUse'  => 'Int',
         'Info'          => 'Text',
         'Status'        => 'Enum(\'new,processing,processed\',\'new\')',
         'Success'       => 'Boolean',
@@ -37,6 +38,7 @@ class DOExport extends DataObject implements PermissionProvider {
 
         // set up the fields for new records
         if (!$this->ID) {
+
             $fields->removeByName('Info');
             $fields->removeByName('Status');
             $fields->removeByName('Success');
@@ -44,6 +46,8 @@ class DOExport extends DataObject implements PermissionProvider {
             $fields->removeByName('FilePath');
             $fields->removeByName('JobSize');
             $fields->removeByName('JobProgress');
+            $fields->removeByName('JobMemoryUse');
+
             $fields->addFieldsToTab(
                 'Root.Main',
                 [
@@ -151,6 +155,11 @@ class DOExport extends DataObject implements PermissionProvider {
 
     /**
      * Processes the Export
+     * Each row will use ~ 10MB RAM so need to chunk the Export
+     * chunkSize = (memlimit / 1024 / 1024 / 10 / (1 + depth));
+     * at the end of each chunk we need to free as much RAM as possible
+     * download will need to zip the files, free RAM then, do a passthru serve:
+     * http://stackoverflow.com/questions/6914912/streaming-a-large-file-using-php
      * @return [type] [description]
      */
     public function process() {
@@ -182,6 +191,7 @@ class DOExport extends DataObject implements PermissionProvider {
 
                 // update record
                 $this->JobSize = $list->count();
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->write();
 
                 // helpful output
@@ -251,6 +261,7 @@ class DOExport extends DataObject implements PermissionProvider {
 
                     // update the progress
                     $this->JobProgress++;
+                    $this->JobMemoryUse = memory_get_peak_usage(true);
                     $this->write();
                 }
 
@@ -288,6 +299,7 @@ class DOExport extends DataObject implements PermissionProvider {
 
                 // yay
                 $this->Status = 'processed';
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->FilePath = $fPath;
                 $this->Success = true;
                 $this->write();
@@ -301,6 +313,7 @@ class DOExport extends DataObject implements PermissionProvider {
 
                 // deliver the bad news
                 $this->Status = 'processed';
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->Info = $e->getMessage();
                 $this->write();
             }

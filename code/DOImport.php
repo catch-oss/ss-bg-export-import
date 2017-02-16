@@ -8,6 +8,7 @@ class DOImport extends DataObject implements PermissionProvider {
         'Success'           => 'Boolean',
         'JobSize'           => 'Int',
         'JobProgress'       => 'Int',
+        'JobMemoryUse'      => 'Int',
     );
 
     private static $has_one = array(
@@ -35,12 +36,14 @@ class DOImport extends DataObject implements PermissionProvider {
 
         // set up the fields for new records
         if (!$this->ID) {
+
             $fields->removeByName('Info');
             $fields->removeByName('Status');
             $fields->removeByName('Success');
             $fields->removeByName('MemberID');
             $fields->removeByName('JobSize');
             $fields->removeByName('JobProgress');
+            $fields->removeByName('JobMemoryUse');
 
             $fileField = new UploadField('ImportFile', 'Import File');
             $fileField->getValidator()->setAllowedExtensions(['txt','json','csv']);
@@ -231,6 +234,7 @@ class DOImport extends DataObject implements PermissionProvider {
 
                 // update record
                 $this->JobSize = count($data);
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->write();
 
                 // loop the loop
@@ -241,10 +245,12 @@ class DOImport extends DataObject implements PermissionProvider {
 
                     // update the progress
                     $this->JobProgress++;
+                    $this->JobMemoryUse = memory_get_peak_usage(true);
                     $this->write();
                 }
 
                 $this->Status = 'processed';
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->Success = true;
                 $this->write();
             }
@@ -254,6 +260,7 @@ class DOImport extends DataObject implements PermissionProvider {
 
                 // deliver the bad news
                 $this->Status = 'processed';
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->Info = $e->getMessage();
                 $this->write();
             }

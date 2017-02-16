@@ -10,6 +10,7 @@ class DOPurge extends DataObject implements PermissionProvider {
         'Success'           => 'Boolean',
         'JobSize'           => 'Int',
         'JobProgress'       => 'Int',
+        'JobMemoryUse'      => 'Int',
     );
 
     private static $has_one = array(
@@ -43,6 +44,7 @@ class DOPurge extends DataObject implements PermissionProvider {
             $fields->removeByName('MemberID');
             $fields->removeByName('JobSize');
             $fields->removeByName('JobProgress');
+            $fields->removeByName('JobMemoryUse');
 
             $fields->addFieldsToTab(
                 'Root.Main',
@@ -108,6 +110,7 @@ class DOPurge extends DataObject implements PermissionProvider {
 
                         // update record
                         $this->JobSize += $list->count();
+                        $this->JobMemoryUse = memory_get_peak_usage(true);
                         $this->write();
 
                         // delete stuff
@@ -119,6 +122,7 @@ class DOPurge extends DataObject implements PermissionProvider {
 
                             // update the progress
                             $this->JobProgress++;
+                            $this->JobMemoryUse = memory_get_peak_usage(true);
                             $this->write();
                         }
                     }
@@ -136,6 +140,7 @@ class DOPurge extends DataObject implements PermissionProvider {
 
                     // update record
                     $this->JobSize += $list->count();
+                    $this->JobMemoryUse = memory_get_peak_usage(true);
                     $this->write();
 
                     // delete stuff
@@ -146,12 +151,14 @@ class DOPurge extends DataObject implements PermissionProvider {
 
                         // update the progress
                         $this->JobProgress++;
+                        $this->JobMemoryUse = memory_get_peak_usage(true);
                         $this->write();
                     }
                 }
 
                 // update the record
                 $this->Status = 'processed';
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->Success = true;
                 $this->write();
             }
@@ -161,6 +168,7 @@ class DOPurge extends DataObject implements PermissionProvider {
 
                 // deliver the bad news
                 $this->Status = 'processed';
+                $this->JobMemoryUse = memory_get_peak_usage(true);
                 $this->Info .= $e->getMessage();
                 $this->write();
             }

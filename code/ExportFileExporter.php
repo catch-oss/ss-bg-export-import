@@ -30,24 +30,40 @@ class ExportFileExporter extends Controller {
             exit;
         }
 
-        // make the right mime type
-        switch ($export->Format) {
+        // zip the package
+        $dir = preg_replace('/\/' . $export->ID . '.*$/', '', $export->FilePath); // support legacy FilePaths
+        $basePath = ASSETS_PATH . '/' . $dir . '/' . $export->ID;
+        $filename = $basePath . '.zip';
 
-            case 'TXT':
-                $mime = 'text/plain';
-                break;
+        if (!is_file($filename)) {
 
-            case 'JSON':
-                $mime = 'application/json';
-                break;
+            // get all the files we want to add
+            $files = glob($basePath . '*');
 
-            case 'CSV':
-                $mime = 'text/csv';
-                break;
+            // init the zip
+            $zip = new ZipArchive;
+
+            // hmm - sad
+            if ($zip->open($filename, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+                exit('cannot open ' . $filename);
+            }
+
+            // add them
+            foreach ($files as $file) {
+                $zip->addFile($file, str_replace($basePath, $export->ID, $file));
+            }
+
+            // check the status
+            if (!$zip->status == ZipArchive::ER_OK) {
+                exit('error occured generating package' . $filename);
+            }
+
+            // close the file
+            $zip->close();
         }
 
         // everything is JSON
-        $this->response->addHeader('Content-Type', $mime);
-        return file_get_contents(ASSETS_PATH . '/' . $export->FilePath);
+        $this->response->addHeader('Content-Type', 'application/zip');
+        return file_get_contents($filename);
     }
 }

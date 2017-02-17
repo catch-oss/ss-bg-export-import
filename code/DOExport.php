@@ -155,8 +155,6 @@ class DOExport extends DataObject implements PermissionProvider {
 
     /**
      * Processes the Export
-     * Each row will use ~ 10MiB RAM so need to chunk the Export
-     * chunkSize = (memlimit / 1024 / 1024 / 10 / (1 + depth));
      * at the end of each chunk we need to free as much RAM as possible
      * download will need to zip the files, free RAM then, do a passthru serve:
      * http://stackoverflow.com/questions/6914912/streaming-a-large-file-using-php
@@ -166,18 +164,36 @@ class DOExport extends DataObject implements PermissionProvider {
 
         // eol
         $eol = php_sapi_name() == 'cli' ? "\n" : '<br>';
+        $start = time();
 
         // we don't want to try this more than once
         if ($this->Status == 'new') {
 
-            $memLimit = ini_set('memory_limit', '512M');
+            // 1GiB is good for ~100k records so a record consumes ~10kiB
+            // We'll play it safe and call it 20kiB which should offer some headroom
+            // i.e. 1GiB = 50k records per file
+            // -> need to chunk the Export
+
+            // Mem Limit
+            $memLimit = ini_get('memory_limit');
+            if ($memLimit == '-1') $memLimit = '1G';
+
+            // parse to MiBs
+            $memLimitMiB = preg_replace('/[^0-9]+/', '', $memLimit);
+
+            // correct for G values
+            if (preg_match('/G/', $memLimit)) $memLimitMiB *= 1024;
+
+            // calc chunk size - allow for ~10kiB / Record
+            $chunkSize = floor((($memLimitMiB / 1024) * 1000) / (1 + $this->Depth)) * 50;
 
             // Let everyone know this is being processed
             $this->Status = 'processing';
             $this->write();
 
             // helpful output
-            echo 'processing export #' . $this->ID . "\n";
+            echo 'Processing Export #' . $this->ID . $eol;
+            echo 'Memory Limit ' . $memLimitMiB . 'MiB | Chunk Size: ' . $chunkSize . $eol;
 
             // try to get the package
             try {
@@ -191,121 +207,150 @@ class DOExport extends DataObject implements PermissionProvider {
                 // get the fields we are exporting
                 $fields = ExportImportutils::all_fields($this->ExportClass);
 
-                // init the collector
-                $out = [];
-
-                // update record
+                // count the full length
                 $this->JobSize = $list->count();
-                $this->JobMemoryUse = memory_get_peak_usage(true);
-                $this->write();
 
                 // helpful output
-                echo 'processing ' . $list->count() . ' root level records' . "\n";
+                echo 'Processing ' . $this->JobSize . ' total root level records in query ' . $eol;
 
-                // loop the loop
-                foreach ($list as $item) {
+                // set the chunk
+                $chunk = 0;
+                $list = $list->limit($chunkSize, $chunk * $chunkSize);
+                $curListLen = $list->count();
 
-                    // extract the data from the object
-                    $data = $this->extractData($item);
+                // set up loop
+                while ($curListLen) {
 
-                    // init the row recievers
-                    $row = [];
-                    $hRow = [];
+                    // init the collector
+                    $out = [];
 
-                    // loop the fields
-                    foreach ($fields as $type => $fData) {
-
-                        // only CSV reqires a header row
-                        if ($this->Format == 'CSV') {
-
-                            // do we need to create header row
-                            if (empty($out)) {
-
-                                // always export the local column headings
-                                if ($type == 'db') {
-                                    foreach ($fData as $name => $conf) {
-                                        $hRow[] = $name;
-                                    }
-                                }
-
-                                // did we want to include any related column headings
-                                else if ((int) $this->Depth > 0) {
-                                    foreach ($fData as $name => $conf) {
-                                        $hRow[] = $name;
-                                    }
-                                }
-                            }
-                        }
-
-                        // always export the local columns
-                        if ($type == 'db') {
-                            foreach ($fData as $name => $conf) {
-                                if ($this->Format == 'CSV') $row[] = $data[$name];
-                                else $row[$name] = $data[$name];
-                            }
-                        }
-
-                        // did we want to include any related columns
-                        else if ((int) $this->Depth > 0) {
-                            foreach ($fData as $name => $conf) {
-
-                                // Serialised TXT and JSON are nested
-                                // so they don't need to be transformed at this point
-                                $this->Format == 'CSV'
-                                    ? $row[] = json_encode($data[$name])
-                                    : $row[$name] = $data[$name];
-                            }
-                        }
-                    }
-
-                    // append header row
-                    if (!empty($hRow)) $out[] = $hRow;
-
-                    // append the datas
-                    $out[] = $row;
-
-                    // update the progress
-                    $this->JobProgress++;
+                    // update record
                     $this->JobMemoryUse = memory_get_peak_usage(true);
                     $this->write();
-                }
 
-                // die(print_r($out, 1));
+                    // helpful output
+                    echo 'Processing ' . $curListLen . ' root level records in chunk ' . $chunk . $eol;
+                    echo 'Mem Usage ' . memory_get_usage(true) . 'B' . $eol;
+                    echo 'Time elapsed: ' . (time() - $start) . 's' . $eol;
 
-                // what CSV are we looking at here
-                $dir = 'data-exports';
-                $fPath = $dir . '/' . $this->ID . '.' . strtolower($this->Format);
-                $fullPath = ASSETS_PATH . '/' . $fPath;
+                    // loop the loop
+                    foreach ($list as $item) {
 
-                // make sure the dir exists
-                if (!is_dir(ASSETS_PATH . '/' . $dir))
-                    mkdir(ASSETS_PATH . '/' . $dir, 766, true);
+                        // extract the data from the object
+                        $data = $this->extractData($item);
 
-                // make sure there's an htaccess file blocking access
-                file_put_contents('Require all denied', ASSETS_PATH . '/' . $dir . '/.htaccess');
+                        // init the row recievers
+                        $row = [];
+                        $hRow = [];
 
-                // write the file
-                switch ($this->Format) {
+                        // loop the fields
+                        foreach ($fields as $type => $fData) {
 
-                    case 'TXT':
-                        file_put_contents($fullPath, serialize($out));
-                        break;
+                            // only CSV reqires a header row
+                            if ($this->Format == 'CSV') {
 
-                    case 'JSON':
-                        file_put_contents($fullPath, json_encode($out));
-                        break;
+                                // do we need to create header row
+                                if (empty($out)) {
 
-                    case 'CSV':
-                        $fp = fopen($fullPath, 'w');
-                        foreach ($out as $line) fputcsv($fp, $line);
-                        fclose($fp);
-                        break;
+                                    // always export the local column headings
+                                    if ($type == 'db') {
+                                        foreach ($fData as $name => $conf) {
+                                            $hRow[] = $name;
+                                        }
+                                    }
+
+                                    // did we want to include any related column headings
+                                    else if ((int) $this->Depth > 0) {
+                                        foreach ($fData as $name => $conf) {
+                                            $hRow[] = $name;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // always export the local columns
+                            if ($type == 'db') {
+                                foreach ($fData as $name => $conf) {
+                                    if ($this->Format == 'CSV') $row[] = $data[$name];
+                                    else $row[$name] = $data[$name];
+                                }
+                            }
+
+                            // did we want to include any related columns
+                            else if ((int) $this->Depth > 0) {
+                                foreach ($fData as $name => $conf) {
+
+                                    // Serialised TXT and JSON are nested
+                                    // so they don't need to be transformed at this point
+                                    $this->Format == 'CSV'
+                                        ? $row[] = json_encode($data[$name])
+                                        : $row[$name] = $data[$name];
+                                }
+                            }
+                        }
+
+                        // append header row
+                        if (!empty($hRow)) $out[] = $hRow;
+
+                        // append the datas
+                        $out[] = $row;
+
+                        // update the progress
+                        $this->JobProgress++;
+                        $this->JobMemoryUse = memory_get_peak_usage(true);
+                        $this->write();
+                    }
+
+                    // what CSV are we looking at here
+                    $dir = 'data-exports';
+                    $fPath = $dir . '/' . $this->ID . '-' . $chunk . '.' . strtolower($this->Format);
+                    $fullPath = ASSETS_PATH . '/' . $fPath;
+
+                    // make sure the dir exists
+                    if (!is_dir(ASSETS_PATH . '/' . $dir))
+                        mkdir(ASSETS_PATH . '/' . $dir, 0777, true);
+
+                    // make sure there's an htaccess file blocking access
+                    file_put_contents('Require all denied', ASSETS_PATH . '/' . $dir . '/.htaccess');
+
+                    // write the file
+                    switch ($this->Format) {
+
+                        case 'TXT':
+                            file_put_contents($fullPath, serialize($out));
+                            break;
+
+                        case 'JSON':
+                            file_put_contents($fullPath, json_encode($out));
+                            break;
+
+                        case 'CSV':
+                            $fp = fopen($fullPath, 'w');
+                            foreach ($out as $line) fputcsv($fp, $line);
+                            fclose($fp);
+                            break;
+                    }
+
+                    // free some RAM
+                    $mem = memory_get_usage();
+                    DataObject::flush_and_destroy_cache();
+                    DataObject::reset();
+                    gc_collect_cycles();
+                    $freed = $mem - memory_get_usage();
+
+                    // helpful output
+                    echo 'Freed ' . $freed . 'B Memory' . $eol;
+
+                    // set the chunk
+                    $chunk++;
+                    $list = $list->limit($chunkSize, $chunk * $chunkSize);
+                    $curListLen = $list->count();
                 }
 
                 // yay
                 $this->Status = 'processed';
                 $this->JobMemoryUse = memory_get_peak_usage(true);
-                $this->FilePath = $fPath;
+                $this->FilePath = $dir;
                 $this->Success = true;
                 $this->write();
 

@@ -76,16 +76,36 @@ class DOPurge extends DataObject implements PermissionProvider {
 
         // eol
         $eol = php_sapi_name() == 'cli' ? "\n" : '<br>';
+        $start = time();
 
         // we don't want to try this more than once
         if ($this->Status == 'new') {
+
+            // 1GiB is good for ~100k records so a record consumes ~10kiB
+            // We'll play it safe and call it 20kiB which should offer some headroom
+            // i.e. 1GiB = 50k records per file
+            // -> need to chunk the Export
+
+            // Mem Limit
+            $memLimit = ini_get('memory_limit');
+            if ($memLimit == '-1') $memLimit = '1G';
+
+            // parse to MiBs
+            $memLimitMiB = preg_replace('/[^0-9]+/', '', $memLimit);
+
+            // correct for G values
+            if (preg_match('/G/', $memLimit)) $memLimitMiB *= 1024;
+
+            // calc chunk size - allow for ~10kiB / Record
+            $chunkSize = floor((($memLimitMiB / 1024) * 1000) / (1 + $this->Depth)) * 50;
 
             // Let everyone know this is being processed
             $this->Status = 'processing';
             $this->write();
 
             // helpful output
-            echo 'processing purge #' . $this->ID . "\n";
+            echo 'Processing Purge #' . $this->ID . $eol;
+            echo 'Memory Limit ' . $memLimitMiB . 'MiB | Chunk Size: ' . $chunkSize . $eol;
 
             // try to get the package
             try {
@@ -106,27 +126,58 @@ class DOPurge extends DataObject implements PermissionProvider {
                         $list = Versioned::get_by_stage($this->PurgeClass, $stage);
 
                         // do we want to filter them
-                        if ($this->Filter) $list->where($this->Filter);
+                        if ($this->Filter) $list = $list->where($this->Filter);
+
+                        // count the full length
+                        $this->JobSize += $list->count();
 
                         // helpful output
-                        echo 'Removing ' . $list->count() . ' items from ' . $stage . "\n";
+                        echo 'Processing ' . $this->JobSize . ' total root level records in query ' . $eol;
+
+                        // set the chunk
+                        $chunk = 0;
+                        $list = $list->limit($chunkSize, $chunk * $chunkSize);
+                        $curListLen = $list->count();
 
                         // update record
-                        $this->JobSize += $list->count();
                         $this->JobMemoryUse = memory_get_peak_usage(true);
                         $this->write();
 
-                        // delete stuff
-                        foreach ($list as $item) {
+                        // set up loop
+                        while ($curListLen) {
 
-                            // oddly some things dont have IDs?
-                            if ($item->ID) $item->deleteFromStage($stage);
-                            if ($item->ID) $item->delete();
+                            // helpful output
+                            echo 'Processing ' . $curListLen . ' root level records in chunk ' . $chunk . $eol;
+                            echo 'Mem Usage ' . memory_get_usage(true) . 'B' . $eol;
+                            echo 'Time elapsed: ' . (time() - $start) . 's' . $eol;
 
-                            // update the progress
-                            $this->JobProgress++;
-                            $this->JobMemoryUse = memory_get_peak_usage(true);
-                            $this->write();
+                            // delete stuff
+                            foreach ($list as $item) {
+
+                                // oddly some things dont have IDs?
+                                if ($item->ID) $item->deleteFromStage($stage);
+                                if ($item->ID) $item->delete();
+
+                                // update the progress
+                                $this->JobProgress++;
+                                $this->JobMemoryUse = memory_get_peak_usage(true);
+                                $this->write();
+                            }
+
+                            // free some RAM
+                            $mem = memory_get_usage();
+                            DataObject::flush_and_destroy_cache();
+                            DataObject::reset();
+                            gc_collect_cycles();
+                            $freed = $mem - memory_get_usage();
+
+                            // helpful output
+                            echo 'Freed ' . $freed . 'B Memory' . $eol;
+
+                            // set the chunk
+                            $chunk++;
+                            $list = $list->limit($chunkSize, $chunk * $chunkSize);
+                            $curListLen = $list->count();
                         }
                     }
                 }
@@ -136,26 +187,57 @@ class DOPurge extends DataObject implements PermissionProvider {
                     $list = new DataList($this->PurgeClass);
 
                     // do we want to filter them
-                    if ($this->Filter) $list->where($this->Filter);
+                    if ($this->Filter) $list = $list->where($this->Filter);
+
+                    // count the full length
+                    $this->JobSize += $list->count();
 
                     // helpful output
-                    echo 'Removing ' . $list->count() . ' items' . "\n";
+                    echo 'Processing ' . $this->JobSize . ' total root level records in query ' . $eol;
+
+                    // set the chunk
+                    $chunk = 0;
+                    $list = $list->limit($chunkSize, $chunk * $chunkSize);
+                    $curListLen = $list->count();
 
                     // update record
-                    $this->JobSize += $list->count();
                     $this->JobMemoryUse = memory_get_peak_usage(true);
                     $this->write();
 
-                    // delete stuff
-                    foreach ($list as $item) {
+                    // set up loop
+                    while ($curListLen) {
 
-                        // oddly some things dont have IDs?
-                        if ($item->ID) $item->delete();
+                        // helpful output
+                        echo 'Processing ' . $curListLen . ' root level records in chunk ' . $chunk . $eol;
+                        echo 'Mem Usage ' . memory_get_usage(true) . 'B' . $eol;
+                        echo 'Time elapsed: ' . (time() - $start) . 's' . $eol;
 
-                        // update the progress
-                        $this->JobProgress++;
-                        $this->JobMemoryUse = memory_get_peak_usage(true);
-                        $this->write();
+                        // delete stuff
+                        foreach ($list as $item) {
+
+                            // oddly some things dont have IDs?
+                                if ($item->ID) $item->delete();
+
+                            // update the progress
+                            $this->JobProgress++;
+                            $this->JobMemoryUse = memory_get_peak_usage(true);
+                            $this->write();
+                        }
+
+                        // free some RAM
+                        $mem = memory_get_usage();
+                        DataObject::flush_and_destroy_cache();
+                        DataObject::reset();
+                        gc_collect_cycles();
+                        $freed = $mem - memory_get_usage();
+
+                        // helpful output
+                        echo 'Freed ' . $freed . 'B Memory' . $eol;
+
+                        // set the chunk
+                        $chunk++;
+                        $list = $list->limit($chunkSize);
+                        $curListLen = $list->count();
                     }
                 }
 

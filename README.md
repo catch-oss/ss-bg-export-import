@@ -13,4 +13,7 @@ suitable for complete export / import
 
 ## todo
 
-tighten up premissions - most likely i had weird users / groups so i used 777 :-0
+- when generating field list
+--> get fields for class and all subclasses
+--> validate fields during other operations
+- tighten up premissions - most likely i had weird users / groups so i used 777 :-0

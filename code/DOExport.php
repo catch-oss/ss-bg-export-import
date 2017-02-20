@@ -101,7 +101,7 @@ class DOExport extends DataObject implements PermissionProvider {
     protected function extractData($obj, $depth = 0) {
 
         // get the fields we are exporting
-        $fields = ExportImportutils::all_fields(get_class($obj));
+        $fields = ExportImportutils::all_fields($obj->ClassName ?: get_class($obj));
 
         // init the collector
         $out = [];

@@ -311,7 +311,7 @@ class DOExport extends DataObject implements PermissionProvider {
                         mkdir(ASSETS_PATH . '/' . $dir, 0777, true);
 
                     // make sure there's an htaccess file blocking access
-                    file_put_contents('Require all denied', ASSETS_PATH . '/' . $dir . '/.htaccess');
+                    file_put_contents(ASSETS_PATH . '/' . $dir . '/.htaccess', 'Require all denied');
 
                     // write the file
                     switch ($this->Format) {

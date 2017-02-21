@@ -230,7 +230,7 @@ class DOImport extends DataObject implements PermissionProvider {
                         mkdir($unpackBase, 0777, true);
 
                     // make sure there's an htaccess file blocking access
-                    file_put_contents('Require all denied', $unpackBase . '/.htaccess');
+                    file_put_contents($unpackBase . '/.htaccess', 'Require all denied');
 
                     // make sure the dir exists for this import
                     $unpackTo = $unpackBase . '/' . $this->ID;

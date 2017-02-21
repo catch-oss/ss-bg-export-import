@@ -20,6 +20,7 @@
 		}
 	}],
 	"require": {
+		"azt3k/abc-silverstripe": "*",
         "composer/installers": "*",
 		"firebase/php-jwt": "*",
 		"php": ">=5.4",

@@ -1,0 +1,9 @@
+---
+Name: project-routes
+After: framework/routes#coreroutes
+---
+Director:
+  rules:
+      fetch-team-tweets: FetchTeamTweets
+      fetch-team-tweets: FetchTeamTweets
+      ExportFileExporter: ExportFileExporter

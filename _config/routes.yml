@@ -1,0 +1,9 @@
+---
+Name: project-routes
+After: framework/routes#coreroutes
+---
+Director:
+  rules:
+    process-do-imports: ProcessDOImports
+    process-do-exports: ProcessDOExports
+    process-do-purges: ProcessDOPurges

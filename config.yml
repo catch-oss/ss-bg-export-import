@@ -1,0 +1,16 @@
+---
+Name: project
+After:
+  - 'framework/*'
+  - 'cms/*'
+---
+GD:
+  default_quality: 90
+Image:
+  extensions:
+    - ImageExtension
+SiteConfig:
+  extensions:
+    - ProjectConfig
+SiteTree:
+  create_default_pages: false

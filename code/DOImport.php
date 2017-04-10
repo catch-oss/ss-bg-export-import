@@ -25,10 +25,6 @@ class DOImport extends DataObject implements PermissionProvider {
         'LastEdited',
     );
 
-    private static $defaults = array(
-        'Depth'
-    );
-
     private static $default_sort = 'Created DESC';
 
     public function getCMSFields() {

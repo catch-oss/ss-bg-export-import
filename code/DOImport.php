@@ -136,8 +136,20 @@ class DOImport extends DataObject implements PermissionProvider {
             $obj->hasExtension('Versioned') ||
             $obj->hasExtension('VersionedDataObject')
         ) {
-            $r = $obj->doRestoreToStage();
-            $p = $obj->doPublish();
+
+            // If there is a draft, some objects expect to be in stage.
+            // If not working (no draft) let's ignore it. Yes catching this and
+            // not doing anything is kinda bad
+            try {
+
+                $r = $obj->doPublish();
+
+            } catch (Exception $e) {
+
+                $r = $obj->doRestoreToStage();
+                $p = $obj->doPublish();
+
+            }
         }
 
         if (!empty($_GET['verbose'])) {

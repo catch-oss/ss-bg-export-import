@@ -9,6 +9,7 @@ class DOImport extends DataObject implements PermissionProvider {
         'JobSize'           => 'Int',
         'JobProgress'       => 'Int',
         'JobMemoryUse'      => 'Int',
+        'SkipDraft'         => 'Boolean'
     );
 
     private static $has_one = array(
@@ -138,18 +139,12 @@ class DOImport extends DataObject implements PermissionProvider {
         ) {
 
             // If there is a draft, some objects expect to be in stage.
-            // If not working (no draft) let's ignore it. Yes catching this and
-            // not doing anything is kinda bad
-            try {
-
-                $r = $obj->doPublish();
-
-            } catch (Exception $e) {
-
+            // If not working (no draft) let's ignore it.
+            if (!$this->SkipDraft) {
                 $r = $obj->doRestoreToStage();
-                $p = $obj->doPublish();
-
             }
+            $r = $obj->doPublish();
+
         }
 
         if (!empty($_GET['verbose'])) {

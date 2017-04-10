@@ -11,6 +11,13 @@ length of time it takes to create the CSV
 2. You only get the output of the Summary fields on the DataObject so it was never
 suitable for complete export / import
 
+## Draft issue
+
+Some items expect (or you want) them to go in to draft.
+An issue can occur when writing pages in draft as they get placed in the Root page.
+They are then not detected as 'allowed children' of the root page. Choose "Skip Draft" to get around this issue
+
+
 ## todo
 
 - when generating field list

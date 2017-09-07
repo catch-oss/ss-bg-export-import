@@ -68,7 +68,8 @@ class DOImport extends DataObject implements PermissionProvider {
 
         // create the object
         $cls = $data['ClassName'];
-        if (!$obj = DataObject::get_by_id($cls, $data['ID'])) {
+
+        if (!isset($data['ID']) || (!$obj = DataObject::get_by_id($cls, $data['ID']))) {
 
              // it's a new record - we need to let SS give it an ID
             unset($data['ID']);

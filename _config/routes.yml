@@ -7,3 +7,4 @@ Director:
     process-do-imports: ProcessDOImports
     process-do-exports: ProcessDOExports
     process-do-purges: ProcessDOPurges
+    ExportFileExporter//$Action/$ID: ExportFileExporter

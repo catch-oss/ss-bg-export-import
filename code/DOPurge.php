@@ -10,7 +10,7 @@ class DOPurge extends DataObject implements PermissionProvider {
         'Success'           => 'Boolean',
         'JobSize'           => 'Int',
         'JobProgress'       => 'Int',
-        'JobMemoryUse'      => 'Int',
+        'JobMemoryUse'      => 'Int'
     );
 
     private static $has_one = array(
@@ -24,10 +24,6 @@ class DOPurge extends DataObject implements PermissionProvider {
         'JobProgress',
         'Created',
         'LastEdited',
-    );
-
-    private static $defaults = array(
-        'Depth'
     );
 
     private static $default_sort = 'Created DESC';
@@ -97,7 +93,7 @@ class DOPurge extends DataObject implements PermissionProvider {
             if (preg_match('/G/', $memLimit)) $memLimitMiB *= 1024;
 
             // calc chunk size - allow for ~10kiB / Record
-            $chunkSize = floor((($memLimitMiB / 1024) * 1000) / (1 + $this->Depth)) * 50;
+            $chunkSize = floor((($memLimitMiB / 1024) * 1000) / (1 + 1)) * 50;
 
             // Let everyone know this is being processed
             $this->Status = 'processing';

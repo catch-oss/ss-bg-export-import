@@ -1,6 +1,6 @@
 <?php
 
-class ExportImportUtils extends Object {
+class ExportImportUtils extends SS_Object {
 
     /**
      * static cache for class fields

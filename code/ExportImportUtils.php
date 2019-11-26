@@ -2,10 +2,17 @@
 
 namespace CatchDesign\SSBGExportImport;
 
+use SilverStripe\Core\Extensible;
+use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Config\Configurable;
+
 use ClassInfo;
 
+class ExportImportUtils {
 
-class ExportImportUtils extends Object {
+    use Extensible;
+    use Injectable;
+    use Configurable;
 
     /**
      * static cache for class fields

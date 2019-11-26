@@ -1,5 +1,14 @@
 <?php
 
+namespace CatchDesign\SSBGExportImport;
+
+use CLIController;
+use CronTask;
+use DataObject;
+use CatchDesign\SSBGExportImport\DOImport;
+
+
+
 class ProcessDOImports extends CLIController implements CronTask {
 
     /**
@@ -19,7 +28,7 @@ class ProcessDOImports extends CLIController implements CronTask {
         $eol = php_sapi_name() == 'cli' ? "\n" : '<br>';
 
         // get all the unprocessed CTA Imports
-        $objs = DataObject::get('DOImport', "Status='new'")->sort('Created');
+        $objs = DataObject::get(DOImport::class, "Status='new'")->sort('Created');
 
         // process them
         foreach ($objs as $obj) {

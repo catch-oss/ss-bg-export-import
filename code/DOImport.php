@@ -1,5 +1,16 @@
 <?php
 
+namespace CatchDesign\SSBGExportImport;
+
+use DataObject;
+use PermissionProvider;
+use UploadField;
+use Member;
+use Exception;
+use ZipArchive;
+use Permission;
+
+
 class DOImport extends DataObject implements PermissionProvider {
 
     private static $db = array(

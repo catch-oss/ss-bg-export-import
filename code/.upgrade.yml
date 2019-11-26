@@ -1,0 +1,10 @@
+mappings:
+  ProcessDOExports: CatchDesign\SSBGExportImport\ProcessDOExports
+  ExportImportAdmin: CatchDesign\SSBGExportImport\ExportImportAdmin
+  DOExport: CatchDesign\SSBGExportImport\DOExport
+  ExportImportUtils: CatchDesign\SSBGExportImport\ExportImportUtils
+  DOImport: CatchDesign\SSBGExportImport\DOImport
+  ProcessDOImports: CatchDesign\SSBGExportImport\ProcessDOImports
+  DOPurge: CatchDesign\SSBGExportImport\DOPurge
+  ProcessDOPurges: CatchDesign\SSBGExportImport\ProcessDOPurges
+  ExportFileExporter: CatchDesign\SSBGExportImport\ExportFileExporter

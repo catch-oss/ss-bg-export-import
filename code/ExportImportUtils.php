@@ -1,5 +1,10 @@
 <?php
 
+namespace CatchDesign\SSBGExportImport;
+
+use ClassInfo;
+
+
 class ExportImportUtils extends Object {
 
     /**

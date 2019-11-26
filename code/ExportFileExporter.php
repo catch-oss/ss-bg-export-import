@@ -1,5 +1,14 @@
 <?php
 
+namespace CatchDesign\SSBGExportImport;
+
+use Controller;
+use HTTP;
+use Permission;
+use Security;
+use ZipArchive;
+
+
 class ExportFileExporter extends Controller {
 
     private static $allowed_actions = array(

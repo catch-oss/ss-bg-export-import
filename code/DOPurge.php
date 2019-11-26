@@ -1,5 +1,18 @@
 <?php
 
+namespace CatchDesign\SSBGExportImport;
+
+use DataObject;
+use PermissionProvider;
+use DropdownField;
+use TextareaField;
+use Member;
+use Versioned;
+use DataList;
+use Exception;
+use Permission;
+
+
 class DOPurge extends DataObject implements PermissionProvider {
 
     private static $db = array(

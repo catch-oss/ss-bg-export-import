@@ -1,5 +1,14 @@
 <?php
 
+namespace CatchDesign\SSBGExportImport;
+
+use ModelAdmin;
+use CatchDesign\SSBGExportImport\DOImport;
+use CatchDesign\SSBGExportImport\DOExport;
+use CatchDesign\SSBGExportImport\DOPurge;
+
+
+
 class ExportImportAdmin extends ModelAdmin {
 
     /**
@@ -7,9 +16,9 @@ class ExportImportAdmin extends ModelAdmin {
      * @var array
      */
     private static $managed_models = array(
-        'DOImport',
-        'DOExport',
-        'DOPurge'
+        DOImport::class,
+        DOExport::class,
+        DOPurge::class
     );
 
     /**

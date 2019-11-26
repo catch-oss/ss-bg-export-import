@@ -30,5 +30,11 @@
 		"phpunit/PHPUnit": "~3.7@stable",
         "squizlabs/php_codesniffer": "2.5.*@stable",
 		"mattclegg/silverstripe-codesniffer": "0.0.1"
-	}
+    },
+
+    "autoload": {
+        "psr-4": {
+            "CatchDesign\\SSBGExportImport\\": "code/"
+        }
+    }
 }

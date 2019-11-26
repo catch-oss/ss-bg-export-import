@@ -23,7 +23,7 @@
 		"azt3k/abc-silverstripe": "*",
         "composer/installers": "*",
 		"firebase/php-jwt": "*",
-		"php": ">=5.4",
+		"php": ">=7.2",
 		"silverstripe/framework": "*"
 	},
 	"require-dev": {

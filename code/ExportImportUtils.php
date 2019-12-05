@@ -6,7 +6,11 @@ use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Config\Configurable;
 
-use ClassInfo;
+
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Core\ClassInfo;
+use SilverStripe\View\ViewableData;
+
 
 class ExportImportUtils {
 
@@ -38,7 +42,7 @@ class ExportImportUtils {
      */
     public static function data_classes() {
         if (empty(static::$c_list)) {
-            $raw = ClassInfo::subclassesFor('DataObject');
+            $raw = ClassInfo::subclassesFor(DataObject::class);
             sort($raw);
             static::$c_list = $raw;
         }
@@ -71,7 +75,7 @@ class ExportImportUtils {
             // build field list
             $cls = $className;
             $fields = ['ID' => ''];
-            while ($cls != 'ViewableData') {
+            while ($cls != ViewableData::class) {
                 $fields = array_merge($fields, $className::database_fields($cls));
                 $cls = get_parent_class($cls);
             }
@@ -97,7 +101,7 @@ class ExportImportUtils {
             $hasOne = [];
             $hasMany = [];
             $manyMany = [];
-            while ($cls != 'ViewableData') {
+            while ($cls != ViewableData::class) {
 
                 // get the static data
                 $nHasOne = singleton($cls)->stat('has_one');

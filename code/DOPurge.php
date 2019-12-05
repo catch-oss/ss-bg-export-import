@@ -2,15 +2,24 @@
 
 namespace CatchDesign\SSBGExportImport;
 
-use DataObject;
-use PermissionProvider;
-use DropdownField;
-use TextareaField;
-use Member;
+
+
+
+
+
 use Versioned;
-use DataList;
+
 use Exception;
-use Permission;
+
+use SilverStripe\ORM\FieldType\DBBoolean;
+use SilverStripe\Security\Member;
+use SilverStripe\Forms\DropdownField;
+use SilverStripe\Forms\TextareaField;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\DataList;
+use SilverStripe\Security\Permission;
+use SilverStripe\Security\PermissionProvider;
+
 
 
 class DOPurge extends DataObject implements PermissionProvider {
@@ -20,14 +29,14 @@ class DOPurge extends DataObject implements PermissionProvider {
         'Filter'            => 'Text',
         'Info'              => 'Text',
         'Status'            => 'Enum(\'new,processing,processed\',\'new\')',
-        'Success'           => 'Boolean',
+        'Success'           => DBBoolean::class,
         'JobSize'           => 'Int',
         'JobProgress'       => 'Int',
         'JobMemoryUse'      => 'Int'
     );
 
     private static $has_one = array(
-        'Member'            => 'Member',
+        'Member'            => Member::class,
     );
 
     private static $summary_fields = array(

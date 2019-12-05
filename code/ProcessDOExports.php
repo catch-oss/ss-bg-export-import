@@ -4,8 +4,10 @@ namespace CatchDesign\SSBGExportImport;
 
 use CLIController;
 use CronTask;
-use DataObject;
+
 use CatchDesign\SSBGExportImport\DOExport;
+use SilverStripe\ORM\DataObject;
+
 
 
 

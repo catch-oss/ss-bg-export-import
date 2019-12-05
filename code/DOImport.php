@@ -2,13 +2,16 @@
 
 namespace CatchDesign\SSBGExportImport;
 
-use DataObject;
-use PermissionProvider;
-use UploadField;
-use Member;
+
 use Exception;
 use ZipArchive;
-use Permission;
+
+use SilverStripe\ORM\FieldType\DBBoolean;
+use SilverStripe\Security\Member;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\Security\Permission;
+use SilverStripe\Security\PermissionProvider;
+use SilverStripe\AssetAdmin\Forms\UploadField;
 
 
 class DOImport extends DataObject implements PermissionProvider {
@@ -16,15 +19,15 @@ class DOImport extends DataObject implements PermissionProvider {
     private static $db = array(
         'Info'              => 'Text',
         'Status'            => 'Enum(\'new,processing,processed\',\'new\')',
-        'Success'           => 'Boolean',
+        'Success'           => DBBoolean::class,
         'JobSize'           => 'Int',
         'JobProgress'       => 'Int',
         'JobMemoryUse'      => 'Int',
-        'SkipDraft'         => 'Boolean'
+        'SkipDraft'         => DBBoolean::class
     );
 
     private static $has_one = array(
-        'Member'        => 'Member',
+        'Member'        => Member::class,
         'ImportFile'    => 'File'
     );
 

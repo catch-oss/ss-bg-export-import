@@ -1,10 +1,12 @@
 ---
 Name: project-routes
-After: framework/routes#coreroutes
+After:
+  - '#rootroutes'
+  - '#coreroutes'
 ---
-Director:
+SilverStripe\Control\Director:
   rules:
-    process-do-imports: ProcessDOImports
-    process-do-exports: ProcessDOExports
-    process-do-purges: ProcessDOPurges
-    ExportFileExporter//$Action/$ID: ExportFileExporter
+    'process-do-imports': 'ProcessDOImports'
+    'process-do-exports': 'ProcessDOExports'
+    'process-do-purges': 'ProcessDOPurges'
+    'ExportFileExporter//$Action/$ID': 'ExportFileExporter'

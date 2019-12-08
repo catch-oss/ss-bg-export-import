@@ -12,6 +12,8 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\AssetAdmin\Forms\UploadField;
+use SilverStripe\Assets\File;
+
 
 
 class DOImport extends DataObject implements PermissionProvider {
@@ -28,7 +30,7 @@ class DOImport extends DataObject implements PermissionProvider {
 
     private static $has_one = array(
         'Member'        => Member::class,
-        'ImportFile'    => 'File'
+        'ImportFile'    => File::class
     );
 
     private static $summary_fields = array(

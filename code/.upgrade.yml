@@ -8,3 +8,4 @@ mappings:
   DOPurge: CatchDesign\SSBGExportImport\DOPurge
   ProcessDOPurges: CatchDesign\SSBGExportImport\ProcessDOPurges
   ExportFileExporter: CatchDesign\SSBGExportImport\ExportFileExporter
+  

@@ -396,7 +396,7 @@ class DOExport extends DataObject implements PermissionProvider {
         );
     }
 
-    public function canCreate($member = false) {
+    public function canCreate($member = false, $context = array()) {
         return Permission::check('ACCESS_DO_EXPORT');
     }
 

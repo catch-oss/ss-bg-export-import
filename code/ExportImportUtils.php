@@ -5,12 +5,9 @@ namespace CatchDesign\SSBGExportImport;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Config\Configurable;
-
-
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\View\ViewableData;
-
 
 class ExportImportUtils {
 

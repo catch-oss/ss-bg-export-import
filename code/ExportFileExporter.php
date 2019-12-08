@@ -2,17 +2,11 @@
 
 namespace CatchDesign\SSBGExportImport;
 
-
-
-
-
 use ZipArchive;
 use SilverStripe\Control\HTTP;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
 use SilverStripe\Control\Controller;
-
-
 
 class ExportFileExporter extends Controller {
 

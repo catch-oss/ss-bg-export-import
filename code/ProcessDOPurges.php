@@ -2,14 +2,10 @@
 
 namespace CatchDesign\SSBGExportImport;
 
-use CLIController;
-use CronTask;
-
+use SilverStripe\Control\CliController;
 use CatchDesign\SSBGExportImport\DOPurge;
 use SilverStripe\ORM\DataObject;
-
-
-
+use SilverStripe\CronTask\Interfaces\CronTask;
 
 class ProcessDOPurges extends CLIController implements CronTask {
 

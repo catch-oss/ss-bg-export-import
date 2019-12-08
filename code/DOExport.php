@@ -2,7 +2,6 @@
 
 namespace CatchDesign\SSBGExportImport;
 
-use ExportImportutils;
 use Exception;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\Security\Member;
@@ -13,8 +12,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataList;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
-
-
+use CatchDesign\SSBGExportImport\ExportImportutils;
 
 class DOExport extends DataObject implements PermissionProvider {
 

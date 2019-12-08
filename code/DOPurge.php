@@ -2,15 +2,9 @@
 
 namespace CatchDesign\SSBGExportImport;
 
-
-
-
-
-
-use Versioned;
-
 use Exception;
 
+use SilverStripe\Versioned\Versioned;
 use SilverStripe\ORM\FieldType\DBBoolean;
 use SilverStripe\Security\Member;
 use SilverStripe\Forms\DropdownField;
@@ -19,8 +13,6 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataList;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
-
-
 
 class DOPurge extends DataObject implements PermissionProvider {
 

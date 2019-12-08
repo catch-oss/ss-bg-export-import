@@ -8,3 +8,16 @@ mappings:
   DOPurge: CatchDesign\SSBGExportImport\DOPurge
   ProcessDOPurges: CatchDesign\SSBGExportImport\ProcessDOPurges
   ExportFileExporter: CatchDesign\SSBGExportImport\ExportFileExporter
+  CronTask: SilverStripe\CronTask\Interfaces\CronTask
+  CronTaskController: SilverStripe\CronTask\Controllers\CronTaskController
+  CronTaskStatus: SilverStripe\CronTask\CronTaskStatus
+  CronTaskControllerTest: SilverStripe\CronTask\Tests\CronTaskControllerTest
+  CronTaskTest_TestCron: SilverStripe\CronTask\Tests\CronTaskTest\TestCron
+  CliController: SilverStripe\Control\CliController
+  SilverStripe\ORM\Versioning\ChangeSetItem: SilverStripe\Versioned\ChangeSetItem
+  SilverStripe\ORM\Versioning\DataDifferencer: SilverStripe\Versioned\DataDifferencer
+  SilverStripe\ORM\Versioning\VersionableExtension: SilverStripe\Versioned\VersionableExtension
+  SilverStripe\ORM\Versioning\Versioned_Version: SilverStripe\Versioned\Versioned_Version
+  SilverStripe\ORM\Versioning\VersionedGridFieldDetailForm: SilverStripe\Versioned\VersionedGridFieldDetailForm
+  SilverStripe\ORM\Versioning\VersionedGridFieldItemRequest: SilverStripe\Versioned\VersionedGridFieldItemRequest
+  SilverStripe\ORM\Versioning\Versioned: SilverStripe\Versioned\Versioned

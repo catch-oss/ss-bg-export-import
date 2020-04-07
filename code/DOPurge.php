@@ -16,6 +16,8 @@ use SilverStripe\Security\PermissionProvider;
 
 class DOPurge extends DataObject implements PermissionProvider {
 
+    private static $table_name = 'DOPurge';
+
     private static $db = array(
         'PurgeClass'        => 'Varchar(255)',
         'Filter'            => 'Text',

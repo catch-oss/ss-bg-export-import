@@ -14,9 +14,9 @@ use SilverStripe\Security\PermissionProvider;
 use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\File;
 
-
-
 class DOImport extends DataObject implements PermissionProvider {
+
+    private static $table_name = 'DOImport';
 
     private static $db = array(
         'Info'              => 'Text',

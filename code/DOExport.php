@@ -16,6 +16,8 @@ use CatchDesign\SSBGExportImport\ExportImportutils;
 
 class DOExport extends DataObject implements PermissionProvider {
 
+    private static $table_name = 'DOExport';
+
     private static $db = array(
         'ExportClass'   => 'Varchar(255)',
         'FilePath'      => 'Varchar(255)',

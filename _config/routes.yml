@@ -6,7 +6,7 @@ After:
 ---
 SilverStripe\Control\Director:
   rules:
-    'process-do-imports': 'ProcessDOImports'
-    'process-do-exports': 'ProcessDOExports'
-    'process-do-purges': 'ProcessDOPurges'
-    'ExportFileExporter//$Action/$ID': 'ExportFileExporter'
+    'process-do-imports': 'CatchDesign\SSBGExportImport\ProcessDOImports'
+    'process-do-exports': 'CatchDesign\SSBGExportImport\ProcessDOExports'
+    'process-do-purges': 'CatchDesign\SSBGExportImport\ProcessDOPurges'
+    'ExportFileExporter//$Action/$ID': 'CatchDesign\SSBGExportImport\ExportFileExporter'

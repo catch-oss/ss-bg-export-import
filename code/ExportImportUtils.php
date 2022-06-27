@@ -74,7 +74,7 @@ class ExportImportUtils {
             $cls = $className;
             $fields = ['ID' => ''];
             while ($cls != ViewableData::class) {
-                $fields = array_merge($fields, $className::database_fields($schema->fieldSpecs($cls)));
+                $fields = array_merge($fields, $schema->fieldSpecs($cls));
                 $cls = get_parent_class($cls);
             }
             static::$f_list[$className] = $fields;

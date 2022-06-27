@@ -71,6 +71,7 @@ class ExportFileExporter extends Controller {
         }
 
         // everything is JSON
+        $this->response->addHeader('Content-Disposition', 'attachment; filename=' . $id . '.zip');
         $this->response->addHeader('Content-Type', 'application/zip');
         return file_get_contents($filename);
     }

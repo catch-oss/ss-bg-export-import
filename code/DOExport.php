@@ -16,6 +16,12 @@ use CatchDesign\SSBGExportImport\ExportImportutils;
 
 class DOExport extends DataObject implements PermissionProvider {
 
+
+    /**
+     * @var string
+     */
+    static private $apacheUser = '';
+
     private static $table_name = 'DOExport';
 
     private static $db = array(
@@ -323,8 +329,12 @@ class DOExport extends DataObject implements PermissionProvider {
                     $fullPath = ASSETS_PATH . '/' . $fPath;
 
                     // make sure the dir exists
-                    if (!is_dir(ASSETS_PATH . '/' . $dir))
-                        mkdir(ASSETS_PATH . '/' . $dir, 0777, true);
+                    if (!is_dir(ASSETS_PATH . '/' . $dir)) {
+                        mkdir(ASSETS_PATH . '/' . $dir, 0775, true);
+                    }
+
+                    // ensure permissions are set correctly
+                    $this->setPermissions(ASSETS_PATH . '/' . $dir);
 
                     // make sure there's an htaccess file blocking access
                     file_put_contents(ASSETS_PATH . '/' . $dir . '/.htaccess', 'Require all denied');
@@ -346,6 +356,9 @@ class DOExport extends DataObject implements PermissionProvider {
                             fclose($fp);
                             break;
                     }
+
+                    // ensure permissions are set correctly
+                    $this->setPermissions($fullPath);
 
                     // free some RAM
                     $mem = memory_get_usage();
@@ -430,5 +443,44 @@ class DOExport extends DataObject implements PermissionProvider {
                 return $user->FirstName . ' ' . $user->Surname . '(#' . $user->ID . ')';
 
         return null;
+    }
+
+    /**
+     * Set permissions on the underlying file of an SS file ref
+     *
+     * @param string $path
+     * @return boolean
+     */
+    protected function setPermissions(string $path): bool
+    {
+        $chmodResult = chmod($path, 775);
+        $chownResult = chown($path, $this->getApacheUser());
+        return $chmodResult && $chownResult;
+    }
+
+    /**
+     * Find the user apache is running as
+     *
+     * @return string
+     */
+    protected function getApacheUser(): string
+    {
+        // check static cache
+        if (!self::$apacheUser) {
+
+            // determine apache user
+            if (stripos(PHP_OS, 'darwin') !== false) {
+                $apacheUser = trim(exec("ps aux | grep -v root | grep '[h]ttpd' | cut -d\\  -f1 | sort | uniq"));
+                $apacheUser = $apacheUser ?: '_www';
+            } else {
+                $apacheUser = 'www-data';
+            }
+
+            // populate static cache
+            self::$apacheUser = $apacheUser;
+        }
+
+        // return the value from the static cache
+        return self::$apacheUser;
     }
 }

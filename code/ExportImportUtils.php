@@ -122,7 +122,7 @@ class ExportImportUtils {
                 'belongs' => $belongs,
                 'has_one' => $hasOne,
                 'has_many' => $hasMany,
-                'many_many' => $manyMany
+                'many_many' => $manyMany,
                 'belongs_many_many' => $belongsManyMany
             ];
         }

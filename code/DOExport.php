@@ -453,7 +453,7 @@ class DOExport extends DataObject implements PermissionProvider {
      */
     protected function setPermissions(string $path): bool
     {
-        $chmodResult = chmod($path, 775);
+        $chmodResult = chmod($path, 0775);
         $chownResult = chown($path, $this->getApacheUser());
         return $chmodResult && $chownResult;
     }

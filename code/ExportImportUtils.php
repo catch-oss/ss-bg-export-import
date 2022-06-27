@@ -70,10 +70,11 @@ class ExportImportUtils {
         if (empty(static::$f_list[$className])) {
 
             // build field list
+            $schema = DataObject::getSchema();
             $cls = $className;
             $fields = ['ID' => ''];
             while ($cls != ViewableData::class) {
-                $fields = array_merge($fields, $className::database_fields($cls));
+                $fields = array_merge($fields, $className::database_fields($schema->fieldSpecs($cls)));
                 $cls = get_parent_class($cls);
             }
             static::$f_list[$className] = $fields;
@@ -95,26 +96,34 @@ class ExportImportUtils {
 
             // build field list
             $cls = $className;
+            $belongs = [];
             $hasOne = [];
             $hasMany = [];
             $manyMany = [];
+            $belongsManyMany = [];
             while ($cls != ViewableData::class) {
 
                 // get the static data
+                $nBelongs = singleton($cls)->stat('belongs');
                 $nHasOne = singleton($cls)->stat('has_one');
                 $nHasMany = singleton($cls)->stat('has_many');
                 $nManyMany = singleton($cls)->stat('many_many');
+                $nBelongsManyMany = singleton($cls)->stat('belongs_many_many');
 
                 // merge
+                $belongs = array_merge($belongs, is_array($nBelongs) ? $nBelongs : []);
                 $hasOne = array_merge($hasOne, is_array($nHasOne) ? $nHasOne : []);
                 $hasMany = array_merge($hasMany, is_array($nHasMany) ? $nHasMany : []);
                 $manyMany = array_merge($manyMany, is_array($nManyMany) ? $nManyMany : []);
+                $belongsManyMany = array_merge($belongsManyMany, is_array($nBelongsManyMany) ? $nBelongsManyMany : []);
                 $cls = get_parent_class($cls);
             }
             static::$r_list[$className] = [
+                'belongs' => $belongs,
                 'has_one' => $hasOne,
                 'has_many' => $hasMany,
                 'many_many' => $manyMany
+                'belongs_many_many' => $belongsManyMany
             ];
         }
 
